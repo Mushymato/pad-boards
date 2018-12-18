@@ -18,7 +18,7 @@
 }
 .float{
 	height:auto;
-	width:auto;
+	margin: 0 auto;
 	overflow:hidden;
 }
 .float > div{
@@ -31,9 +31,6 @@
 .grid.atts{
 	width: 100px;
 	grid-template-columns: repeat(5, 20px);
-}
-.grid.boards{
-	
 }
 .board {
 	background-image:url('img/BG.png');
@@ -48,10 +45,6 @@
 }
 .board.size-m {
 	width:240px;
-	height:200px;
-}
-.board.size-half {
-	width:120px;
 	height:200px;
 }
 .board.size-l {
@@ -70,6 +63,22 @@
 	width:40px;
 	height:40px;
 }
+.board-info > div{
+	min-width:20px;
+	min-height:20px;
+	width:auto;
+	height:auto;
+	overflow:hidden;
+	text-align:center;
+	font-weight:bold;
+}
+.board-ratio-combo{
+	margin: 0px 5px;
+	font-size:18pt;
+	padding: 2px;
+	border: solid 2px black;
+	border-radius: 4px;
+}
 .orb-bg{
 	margin: 0px;
     background-size: contain;
@@ -77,18 +86,22 @@
 	background-repeat: no-repeat;
     z-index: 1;
     position: relative;
-	text-shadow: 1px 1px 0px #ffffff;
 	min-width:20px;
 	min-height:20px;
-}
-.border-box{
-	text-align:center;
-	display: inline-block;
 	width:auto;
 	height:auto;
 	overflow:hidden;
-	margin: 1px;
-	border: 1px solid #000000;
+}
+.style-box{
+	margin: 0px 1px;
+	padding: 1px;
+	display: inline-block;
+	font-weight:bold;
+	font-family: Arial Narrow,Arial,sans-serif; 
+	color:black;
+	-webkit-text-fill-color: white;
+	-webkit-text-stroke-width: 1px;
+	-webkit-text-stroke-color: black;
 }
 .R {
 	background-image: url('img/R.png');

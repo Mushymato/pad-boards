@@ -1,8 +1,8 @@
 <?php
-$size_list = array('s' => array(5,4), 'm' => array(6,5), 'l' => array(7,6), 'half' => array(3,5));
+$size_list = array('s' => array(5,4), 'm' => array(6,5), 'l' => array(7,6));
 $orb_list = array('R', 'B', 'G', 'L', 'D', 'H', 'J', 'X', 'P', 'M');
 $var_orb_list = array('R', 'B', 'G', 'L', 'D');
-$style_list = array('TPA', 'CROSS', 'L', 'VDP', 'SFUA', 'FUA', 'ROW');
+$style_list = array('MISC', 'TPA', 'CROSS', 'L', 'VDP', 'SFUA', 'FUA', 'ROW');
 function get_board($pattern, $size = 'm'){
 	$out = '<div class="board size-' . $size . '">';
 	foreach(str_split($pattern) as $o){
@@ -19,11 +19,7 @@ function get_board_arr($p_arr, $size = 'm'){
 	$out = $out . '</div>';
 	return $out;
 }
-function count_orbs($pattern, $ol = null){
-	if($ol == null){
-		global $orb_list;
-		$ol = $orb_list;
-	}
+function count_orbs($pattern, $ol){
 	$counts = array();
 	foreach($ol as $orb){
 		$counts[$orb] = 0;
@@ -35,65 +31,17 @@ function count_orbs($pattern, $ol = null){
 	}
 	return $counts;
 }
-function get_ratio($board){
-	global $orb_list;
-	$out = '';
-	foreach($orb_list as $orb){
-		if($board[$orb] != 0){
-			$out = $out . $board[$orb] . '-';
-		}
-	}
-	return substr($out, 0, -1);
-}
-function normalize($entry){
+function reorder($pattern, $order){
 	global $var_orb_list;
-	$entry['size'] = strtolower($entry['size']);
-	$entry['pattern'] = strtoupper($entry['pattern']);
-	$counts = array_filter(count_orbs($entry['pattern'], $var_orb_list));
-	arsort($counts);
 	$i = 0;
-	foreach($counts as $orb => $count){
-		$entry['pattern'] = str_replace($orb, strval($i), $entry['pattern']);
-		if(in_array($entry['styleAtt'], $var_orb_list) && $entry['styleAtt'] == $orb){
-			$entry['styleAtt'] = strval($i);
-		}
+	foreach($order as $orb => $count){
+		$pattern = str_replace($orb, strval($i), $pattern);
 		$i++;
 	}
 	foreach($var_orb_list as $idx => $orb){
-		$entry['pattern'] = str_replace($idx, $orb, $entry['pattern']);
-		if($entry['styleAtt'] == strval($idx)){
-			$entry['styleAtt'] = $orb;
-		}
+		$pattern = str_replace($idx, $orb, $pattern);
 	}
-	$solve = solve_board(str_split($entry['pattern']));
-	$entry['combo'] = count_combos($solve);
-	$entry = array_merge($entry, count_orbs($entry['pattern']));
-	return $entry;
-}
-function invert($entry){
-	global $var_orb_list;
-	$entry['size'] = strtolower($entry['size']);
-	$entry['pattern'] = strtoupper($entry['pattern']);
-	$counts = array_filter(count_orbs($entry['pattern'], $var_orb_list));
-	asort($counts);
-	$i = 0;
-	foreach($counts as $orb => $count){
-		$entry['pattern'] = str_replace($orb, strval($i), $entry['pattern']);
-		if(in_array($entry['styleAtt'], $var_orb_list) && $entry['styleAtt'] == $orb){
-			$entry['styleAtt'] = strval($i);
-		}
-		$i++;
-	}
-	foreach($var_orb_list as $idx => $orb){
-		$entry['pattern'] = str_replace($idx, $orb, $entry['pattern']);
-		if($entry['styleAtt'] == strval($idx)){
-			$entry['styleAtt'] = $orb;
-		}
-	}
-	$res = solve_board(str_split($entry['pattern']));
-	$entry['combo'] = count_combos($res[1]);
-	$entry = array_merge($entry, count_orbs($entry['pattern']));
-	return $entry;
+	return $pattern;
 }
 class FloodFill{
 	public $p_arr = array();
@@ -279,9 +227,7 @@ class FloodFill{
 		}
 	}
 }
-function solve_board($p_arr, $wh, $minimumMatched = 2){	
-	$p_start = $p_arr;
-	
+function solve_board($p_arr, $wh = array(6,5), $minimumMatched = 2){	
 	$comboPositionList = array();
 	$comboColor = '';
 	$comboPosition = array();
@@ -321,14 +267,14 @@ function solve_board($p_arr, $wh, $minimumMatched = 2){
 	}
 	
 	if (sizeof($comboPositionList) == 0){
-		return array(array('board' => $p_start, 'solution' => false));
+		return false;
 	}
 	$ff = new FloodFill($p_arr, $wh, $minimumMatched, $comboPositionList);
 	foreach($comboPositionList as $p){
 		$ff->floodFill($p);
 	}
 	if(sizeof($ff->solutions) == 0){
-		return array(array('board' => $p_start, 'solution' => false));
+		return false;
 	}
 	foreach($ff->solutions as $combo){
 		foreach($combo['positions'] as $p){
@@ -350,10 +296,23 @@ function solve_board($p_arr, $wh, $minimumMatched = 2){
 	}
 
 	$res = solve_board($p_arr, $wh);
-	return array_merge(array(array('board' => $p_start, 'solution' => $ff->solutions)), $res);
+	if($res){
+		return array_merge(array(array('board' => $p_arr, 'solution' => $ff->solutions)), $res);
+	}else{
+		return array(array('board' => $p_arr, 'solution' => $ff->solutions));
+	}
 }
-function get_match_pattern($solution){
-	$p_arr = str_split(str_repeat('-', 30));
+function count_combos($solve){
+	$count = 0;
+	foreach($solve as $step){
+		if($step['solution']){
+			$count += sizeof($step['solution']);
+		}
+	}
+	return $count;
+}
+function get_combined_match_pattern($solution, $wh = array(6,5)){
+	$p_arr = array_fill(0, $wh[0] * $wh[1], '-');
 	foreach($solution as $combo){
 		foreach($combo['positions'] as $p){
 			$p_arr[$p] = $combo['color'];
@@ -361,12 +320,12 @@ function get_match_pattern($solution){
 	}
 	return $p_arr;
 }
-function count_combos($result){
-	$count = 0;
-	foreach($result as $step){
-		$count += sizeof($step['solution']);
+function get_match_pattern($combo, $wh = array(6,5)){
+	$p_arr = array_fill(0, $wh[0] * $wh[1], '-');
+	foreach($combo['positions'] as $p){
+		$p_arr[$p] = $combo['color'];
 	}
-	return $count;
+	return $p_arr;
 }
 function connect_sql($host, $user, $pass, $schema){
 	// Create connection
@@ -381,7 +340,7 @@ function connect_sql($host, $user, $pass, $schema){
 	$conn->select_db($schema);
 	return $conn;
 }
-function execute_select_stmt($stmt){
+function execute_select_stmt($stmt, $pk = null){
 	if(!$stmt->execute()){
 		trigger_error($conn->error . '[select]');
 		return false;
@@ -399,132 +358,93 @@ function execute_select_stmt($stmt){
 	}
 	call_user_func_array(array($stmt, 'bind_result'), $fields);
 	$res = array();
-	while ($stmt->fetch()) { 
+	while ($stmt->fetch()){ 
 		foreach($row as $key => $val){
 			$c[$key] = $val; 
 		} 
-		$res[] = $c; 
+		if($pk != null){
+			if(array_key_exists($c[$pk], $res)){
+				$res[$c[$pk]][] = $c;
+			}else{
+				$res[$c[$pk]] = array($c);
+			}
+		}else{
+			$res[] = $c; 
+		}
 	}
 	return $res;
 }
-function insert_board($conn, $combo, $style, $pattern, $styleCount = 0, $size = 'm', $description = ''){
-	global $size_list;
-	global $orb_list;
-	if(!in_array($size, $size_list)){
-		return false;
-	}
-	$pattern = strtoupper($pattern);
-	foreach(str_split($pattern) as $o){
-		if(!in_array($o, $orb_list)){
-			return false;
+function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', 'combos', 'styles')){
+	foreach($tablenames as $tablename){
+		foreach(array('SET FOREIGN_KEY_CHECKS = 0;', 'TRUNCATE TABLE ' . $tablename . ';', 'SET FOREIGN_KEY_CHECKS = 1;') as $sql){
+			if(!$conn->query($sql)){
+				trigger_error('Truncate ' . $tablename . ' failed: ' . $conn->error);
+				return false;
+			}
 		}
 	}
-	if($styleCount == ''){
-		$styleCount = 0;
-	}
-	$sql = 'INSERT INTO `Boards` (`size`,`pattern`,`combo`,`style`,`styleCount`,`description`) VALUES (?,?,?,?,?,?);';
-	$stmt = $conn->prepare($sql);
-	$stmt->bind_param('ssisis', $size, $pattern, $combo, $style, $styleCount, $description);
-	if(!$stmt->execute()){
-		trigger_error('Insert failed: ' . $conn->error);
-		$stmt->close();
-		return false;
-	}
-	$stmt->close();
 	return true;
 }
-function load_boards_from_google_sheets($conn){
-	global $orb_list;
-	$url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQkDdwvr-R6t4SbqlLddS302UtKWvMx-rGIRDKD8_6AszcvNNv_N56SOoffaw1eRZbP0cUmM3eges1G/pub?gid=0&single=true&output=csv';
-	$data = array();
-	$fieldnames = array();
-	if ($fh = fopen($url, 'r')) {
-		if(!feof($fh)){
-			$fieldnames = explode(',',trim(fgets($fh)));
-		}
-		while (!feof($fh)) {
-			$tmp = explode(',',trim(fgets($fh)));
-			$entry = array();
-			for($i = 0; $i < sizeof($fieldnames); $i++){
-				$entry[$fieldnames[$i]] = $tmp[$i] == '' ? null : $tmp[$i];
-			}
-			$data[] = normalize($entry);
-			$data[] = invert($entry);
-		}
-		fclose($fh);
-	}else{
-		trigger_error('Failed to open google sheet.');
-		return false;
-	}
-	$fieldnames = array_merge($fieldnames, $orb_list);
-	$tablename = 'Boards';
-	$sql = 'TRUNCATE TABLE ' . $tablename;
-	if(!$conn->query($sql)){
-		trigger_error('Truncate ' . $tablename . ' failed: ' . $conn->error);
-		return false;
-	}
-	$insert_size = 1;
-	$sql = 'INSERT INTO ' . $tablename . ' (';
-	$paramtype = '';
-	foreach($fieldnames as $field){
-		$sql = $sql . $field . ',';
-		if(ctype_digit($data[0][$field])){
-			$paramtype = $paramtype . 'i';
-		}else{
-			$paramtype = $paramtype . 's';
-		}
-	}
-	$valueGroup = ' (' . substr(str_repeat('?,', sizeof($fieldnames)), 0, -1) . '),';
-	$sql = substr($sql, 0, -1) . ') VALUES ';
-	$sql_m = $sql . substr(str_repeat($valueGroup, $insert_size), 0, -1) . ';';
-	$paramtype_m = str_repeat($paramtype, $insert_size);
-	$stmt = $conn->prepare($sql_m);
-	$count = 0;
-	$value_arr = array();
-	foreach($data as $entry){
-		foreach($fieldnames as $field){
-			if(ctype_digit($data[0][$field]) && $entry[$field] == ''){
-				$value_arr[] = '0';
-			}else{
-				$value_arr[] = $entry[$field];
-			}
-		}
-		if(sizeof($value_arr) == strlen($paramtype_m)){
-			$stmt->bind_param($paramtype_m, ...$value_arr);
-			if(!$stmt->execute()){
-				trigger_error('Insert failed: ' . $conn->error);
-			}else{
-				$count += $insert_size;
-			}
-			$value_arr = array();
-		}
-	}
-	$stmt->close();
-	if(sizeof($value_arr) > 0){
-		$remaining = sizeof($value_arr) / sizeof($fieldnames);
-		$sql = $sql . substr(str_repeat($valueGroup, $remaining), 0, -1) . ';';
-		$stmt = $conn->prepare($sql);
-		$stmt->bind_param(str_repeat($paramtype, $remaining), ...$value_arr);
-		if(!$stmt->execute()){
-			trigger_error('Insert failed: ' . $conn->error);
-		}else{
-			$count += $remaining;
-		}
-		$value_arr = array();
-		$stmt->close();
-	}
-	echo 'Imported ' . $count . ' records out of ' . sizeof($data) . ' to ' . $tablename . PHP_EOL;
-}
 function select_boards_by_size($conn, $size = 'm'){
-	$sql = 'SELECT `Boards`.`bID`,`Boards`.`size`,`Boards`.`pattern`,`Boards`.`combo`,`Boards`.`style`,`Boards`.`styleAtt`,`Boards`.`styleCount`,`Boards`.`R`,`Boards`.`B`,`Boards`.`G`,`Boards`.`L`,`Boards`.`D`,`Boards`.`H`,`Boards`.`J`,`Boards`.`X`,`Boards`.`P`,`Boards`.`M`,`Boards`.`description` FROM `Boards` WHERE `Boards`.`size`=? ORDER BY `Boards`.`R` DESC;';
+	$sql = 'select boards.bID, boards.size, boards.pattern from boards left join orbs on boards.bID=orbs.bID where boards.size=? and orbs.color="R" order by orbs.count desc;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
-	$res = execute_select_stmt($stmt);
+	$boards = execute_select_stmt($stmt);
 	$stmt->close();
-	return $res;
-}
-function select_boards_by_params($conn, $params){
 	
+	$sql = 'select boards.bID, orbs.color, orbs.count from boards left join orbs on boards.bID=orbs.bID where boards.size=?;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_orbs = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
+	
+	$sql = 'select boards.bID, combos.color, styles.style, count(combos.cID) style_counts from boards inner join combos on boards.bID=combos.bID left join styles on combos.cID=styles.cID where boards.size=? group by boards.bID,combos.color,styles.style;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_styles = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
+	
+	foreach($boards as &$board){
+		$board['orbs'] = array();
+		foreach($board_orbs[$board['bID']] as $orb){
+			$board['orbs'][$orb['color']] = $orb['count'];
+		}
+		$board['styles'] = array();
+		foreach($board_styles[$board['bID']] as $style){
+			if($style['style'] == null){
+				$board['styles']['MISC'][$style['color']] = $style['style_counts'];
+			}else{
+				$board['styles'][$style['style']][$style['color']] = $style['style_counts'];
+			}
+		}
+	}
+	
+	return $boards;
+}
+function display_boards($boards){
+	$output = '';
+	foreach($boards as $board){
+		$output = $output . '<div class="board-box"><div class="board-info float">';
+		$ratio_str = '';
+		foreach($board['orbs'] as $color => $count){
+			$ratio_str = $ratio_str . $count . '-';
+		}
+		$combo = 0;
+		$style_str = '';
+		foreach($board['styles'] as $name => $style){
+			foreach($style as $color => $count){
+				$combo += $count;
+				if($name == 'MISC'){
+					continue;
+				}
+				$style_str = $style_str . '<div data-orb="' . $color . '" class="style-box orb-bg ' . $color . '">' . $name . '[' . $count . ']</div>';
+			}
+		}	
+		$output = $output . '<div class="board-ratio-combo">' . substr($ratio_str, 0, -1) . '(' . $combo . 'c)</div><div class="float">' . $style_str . '</div></div>';
+		$output = $output . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a>';
+		$output = $output . '</div>';
+	}
+	return '<div class="float">' . $output . '</div>';
 }
 function att_radios($att_num, $checked = ''){
 	$out = '';
@@ -539,7 +459,7 @@ function get_att_change_radios($boards){
 	$colors = array();
 	foreach($boards as $board){
 		for($i = 0; $i < sizeof($var_orb_list); $i++){
-			if($board[$var_orb_list[$i]] > 0 && !in_array($i, $colors)){
+			if(array_key_exists($var_orb_list[$i], $board['orbs']) && !in_array($i, $colors)){
 				$colors[] = $i;
 			}
 		}
