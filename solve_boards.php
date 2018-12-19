@@ -3,11 +3,11 @@
 <head>
 <link rel="stylesheet" type="text/css" href="boards.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>
-<script src="change_board_colors.js" type="text/javascript"></script>
+<script src="board_filters.js" type="text/javascript"></script>
 <script>
-window.onload = function(){
+$(document).ready(function(){
 	refreshAllColors();
-}
+});
 </script>
 </head>
 <body>
@@ -27,7 +27,7 @@ if(array_key_exists('pattern', $_GET)){
 			foreach($step['solution'] as $combo){
 				if($combo['styles']){
 					foreach($combo['styles'] as $style){
-						$styles[] = '<div data-orb="' . $combo['color'] . '" class="style-box orb-bg ' . $combo['color'] . '">' . $style . '</div>';
+						$styles[] = '<div class="style-box">' . orb_style_icon($style, $combo['color']) . '</div>';
 					}
 				}
 			}

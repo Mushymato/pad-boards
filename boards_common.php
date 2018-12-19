@@ -1,8 +1,8 @@
 <?php
 $size_list = array('s' => array(5,4), 'm' => array(6,5), 'l' => array(7,6));
 $orb_list = array('R', 'B', 'G', 'L', 'D', 'H', 'J', 'X', 'P', 'M');
-$var_orb_list = array('R', 'B', 'G', 'L', 'D');
-$style_list = array('MISC', 'TPA', 'CROSS', 'L', 'VDP', 'SFUA', 'FUA', 'ROW');
+$rgbld_orb_list = array('R', 'B', 'G', 'L', 'D');
+$style_list = array('TPA', 'CROSS', 'LA', 'VDP', 'FUA', 'ROW');
 function get_board($pattern, $size = 'm'){
 	$out = '<div class="board size-' . $size . '">';
 	foreach(str_split($pattern) as $o){
@@ -32,13 +32,13 @@ function count_orbs($pattern, $ol){
 	return $counts;
 }
 function reorder($pattern, $order){
-	global $var_orb_list;
+	global $rgbld_orb_list;
 	$i = 0;
 	foreach($order as $orb => $count){
 		$pattern = str_replace($orb, strval($i), $pattern);
 		$i++;
 	}
-	foreach($var_orb_list as $idx => $orb){
+	foreach($rgbld_orb_list as $idx => $orb){
 		$pattern = str_replace($idx, $orb, $pattern);
 	}
 	return $pattern;
@@ -125,19 +125,19 @@ class FloodFill{
 						in_array($this->convertPosition($x, $y+2), $combo['positions']) &&
 						in_array($this->convertPosition($x+1, $y+2), $combo['positions']) &&
 						in_array($this->convertPosition($x+2, $y+2), $combo['positions'])){
-						$styles[] = 'L';
+						$styles[] = 'LA';
 					}else if(
 						in_array($this->convertPosition($x+1, $y), $combo['positions']) &&
 						in_array($this->convertPosition($x+2, $y), $combo['positions']) &&
 						in_array($this->convertPosition($x+2, $y+1), $combo['positions']) &&
 						in_array($this->convertPosition($x+2, $y+2), $combo['positions'])){
-						$styles[] = 'L';
+						$styles[] = 'LA';
 					}else if(
 						in_array($this->convertPosition($x+1, $y), $combo['positions']) &&
 						in_array($this->convertPosition($x+2, $y), $combo['positions']) &&
 						in_array($this->convertPosition($x, $y+1), $combo['positions']) &&
 						in_array($this->convertPosition($x, $y+2), $combo['positions'])){
-						$styles[] = 'L';
+						$styles[] = 'LA';
 					}
 				}
 				if($x >= 2 && $y >= 0 && $x <= $this->wh[0]-1 && $y <= $this->wh[1]-3){
@@ -145,7 +145,7 @@ class FloodFill{
 						in_array($this->convertPosition($x, $y+2), $combo['positions']) &&
 						in_array($this->convertPosition($x-1, $y+2), $combo['positions']) &&
 						in_array($this->convertPosition($x-2, $y+2), $combo['positions'])){
-						$styles[] = 'L';
+						$styles[] = 'LA';
 					}
 				}
 			}else if($size == 9){
@@ -161,11 +161,7 @@ class FloodFill{
 						}
 					}
 					if($full_box){
-						if($combo['color'] == 'H'){
-							$styles[] = 'SFUA';
-						}else{
-							$styles[] = 'VDP';
-						}
+						$styles[] = 'VDP';
 					}
 				}
 			}
@@ -196,6 +192,7 @@ class FloodFill{
 					}
 					if($full_row){
 						$styles[] = 'ROW';
+						break;
 					}
 				}
 			}
@@ -386,13 +383,13 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 	return true;
 }
 function select_boards_by_size($conn, $size = 'm'){
-	$sql = 'select boards.bID, boards.size, boards.pattern from boards left join orbs on boards.bID=orbs.bID where boards.size=? and orbs.color="R" order by orbs.count desc;';
+	$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and orbs.color="R" order by orbs.count asc;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
 	$boards = execute_select_stmt($stmt);
 	$stmt->close();
 	
-	$sql = 'select boards.bID, orbs.color, orbs.count from boards left join orbs on boards.bID=orbs.bID where boards.size=?;';
+	$sql = 'select boards.bID, orbs.color, orbs.count from boards inner join orbs on boards.bID=orbs.bID where boards.size=?;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
 	$board_orbs = execute_select_stmt($stmt, 'bID');
@@ -418,17 +415,32 @@ function select_boards_by_size($conn, $size = 'm'){
 			}
 		}
 	}
-	
 	return $boards;
 }
+function orb_style_icon($name, $color){
+	$style_icon = $name;
+	$data_row = '';
+	if($name == 'ROW'){
+		$style_icon = $color . 'RE';
+		$data_row = 'data-row-color="' . $color . '"';
+	}else if($color == 'H'){
+		if($name == 'TPA'){
+			$style_icon = 'HOE';
+		}else if($name == 'LA'){
+			$style_icon == 'LS';
+		}else if($name == 'VDP'){
+			$style_icon = 'SFUA';
+		}
+	}
+	$orb_icon = '<div data-orb="' . $color . '" class="orb-bg ' . $color . '"></div>';
+	$style_icon = '<img ' . $data_row . ' src="img/' . $style_icon . '.png" title="' . $style_icon . '" width="20" height="20"/>';
+	return $orb_icon . $style_icon;
+}
 function display_boards($boards){
+	global $orb_list;
+	global $rgbld_orb_list;
 	$output = '';
 	foreach($boards as $board){
-		$output = $output . '<div class="board-box"><div class="board-info float">';
-		$ratio_str = '';
-		foreach($board['orbs'] as $color => $count){
-			$ratio_str = $ratio_str . $count . '-';
-		}
 		$combo = 0;
 		$style_str = '';
 		foreach($board['styles'] as $name => $style){
@@ -437,39 +449,55 @@ function display_boards($boards){
 				if($name == 'MISC'){
 					continue;
 				}
-				$style_str = $style_str . '<div data-orb="' . $color . '" class="style-box orb-bg ' . $color . '">' . $name . '[' . $count . ']</div>';
+				if(!in_array($color, $rgbld_orb_list) && $color != 'H'){
+					continue;
+				}
+				$style_str = $style_str . '<div class="style-box">' . orb_style_icon($name, $color) . '<span>x' . $count . '</span></div>';
 			}
-		}	
-		$output = $output . '<div class="board-ratio-combo">' . substr($ratio_str, 0, -1) . '(' . $combo . 'c)</div><div class="float">' . $style_str . '</div></div>';
-		$output = $output . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a>';
-		$output = $output . '</div>';
+		}
+		
+		$ratio = '';
+		$data_ratio = '';
+		foreach($orb_list as $color){
+			if(array_key_exists($color, $board['orbs'])){
+				$ratio = $ratio . $board['orbs'][$color] . '-';
+				$data_ratio = $data_ratio . 'data-ratio-' . $color . '="' . $board['orbs'][$color] . '" ';
+			}
+		}
+		$output = $output . '<div class="board-box" ' . $data_ratio . '><div class="board-info float"><div class="board-ratio">' . substr($ratio, 0, -1) . '</div><div class="float"><p class="board-combos">' . $combo . ' combo</p>' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
 	return '<div class="float">' . $output . '</div>';
 }
-function att_radios($att_num, $checked = ''){
+function orb_radios($att_num, $checked = ''){
 	$out = '';
-	global $var_orb_list;
-	foreach ($var_orb_list as $i => $orb){
-		$out = $out . '<div><input type="radio" name="attribute-' . $var_orb_list[$att_num] . '" data-attribute="' . $var_orb_list[$att_num] . '-' . $orb . '" value="' . $orb . '"><p class="orb-bg ' . $orb . '"></p></div>';
+	global $rgbld_orb_list;
+	foreach ($rgbld_orb_list as $i => $orb){
+		$out = $out . '<label class="orb-radio orb-bg ' . $orb . '"><input type="radio" name="attribute-' . $rgbld_orb_list[$att_num] . '" data-attribute="' . $rgbld_orb_list[$att_num] . '-' . $orb . '" value="' . $orb . '"><div class="orb-check"></div></label>';
 	}
 	return $out;
 }
-function get_att_change_radios($boards){
-	global $var_orb_list;
+function get_attribute_filters($boards){
+	global $rgbld_orb_list;
+	global $size_list;
 	$colors = array();
+	$wh = array(6, 5);
 	foreach($boards as $board){
-		for($i = 0; $i < sizeof($var_orb_list); $i++){
-			if(array_key_exists($var_orb_list[$i], $board['orbs']) && !in_array($i, $colors)){
+		for($i = 0; $i < sizeof($rgbld_orb_list); $i++){
+			if(array_key_exists($rgbld_orb_list[$i], $board['orbs']) && !in_array($i, $colors)){
 				$colors[] = $i;
+			}
+			if($size_list[$board['size']][0] > $wh[0]){
+				$wh = $size_list[$boards['size']];
 			}
 		}
 	}
 	$out = '';
+	$max = $wh[0]*$wh[1];
 	foreach($colors as $i){
-		$out = $out . att_radios($i, $i);
+		$out = $out . '<div class="grid filters" data-orb-base="' . $rgbld_orb_list[$i] . '"><div class="grid atts">' . orb_radios($i) . '</div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0">' . $max . '</div></div>';
 	}
-	$out = '<div class="grid atts">' . $out . '</div>';
+	$out = $out . '<div class="grid filters" data-orb-base="H"><div class="orb-radio orb-bg H"></div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0">' . $max . '</div></div>';
 	
-	return $out;
+	return '<fieldset class="board-filters"><legend>Board Filters</legend>' . $out . '</fieldset>';
 }
 ?>

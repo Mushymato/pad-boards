@@ -3,42 +3,46 @@ include 'boards_common.php';
 include 'sql_param.php';
 $time_start = microtime(true);
 $conn = connect_sql($host, $user, $pass, $schema);
-$url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQkDdwvr-R6t4SbqlLddS302UtKWvMx-rGIRDKD8_6AszcvNNv_N56SOoffaw1eRZbP0cUmM3eges1G/pub?gid=0&single=true&output=csv';
+$url_google_sheet = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQkDdwvr-R6t4SbqlLddS302UtKWvMx-rGIRDKD8_6AszcvNNv_N56SOoffaw1eRZbP0cUmM3eges1G/pub?gid=0&single=true&output=csv';
+$url_local = 'boards.csv';
 $data = array();
 $fieldnames = array();
-if ($fh = fopen($url, 'r')) {
-	if(!feof($fh)){
-		$fieldnames = explode(',',trim(fgets($fh)));
-	}
-	//override
-	$fieldnames = array(
-		0 => 'size',
-		1 => 'pattern'
-	);
-	while (!feof($fh)) {
-		$tmp = explode(',',trim(fgets($fh)));
-		$entry = array();
-		foreach($fieldnames as $i => $fn){
-			$entry[$fn] = $tmp[$i] == '' ? null : $tmp[$i];
-		}
-		$entry['size'] = strtolower($entry['size']);
-		$entry['pattern'] = strtoupper($entry['pattern']);
-		$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $var_orb_list));
-		arsort($entry['orbs']);
-		$entry['pattern'] = reorder($entry['pattern'], $entry['orbs']);
-		$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $var_orb_list));
-		$data[$entry['pattern']] = $entry;
-		$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $var_orb_list));
-		asort($entry['orbs']);
-		$entry['pattern'] = reorder($entry['pattern'], $entry['orbs']);
-		$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $var_orb_list));
-		$data[$entry['pattern']] = $entry;
-	}
-	fclose($fh);
-}else{
-	trigger_error('Failed to open google sheet.');
-	return false;
+$fh = null;
+if (!($fh = fopen($url_google_sheet, 'r'))) {
+	die('No data to sync.');
 }
+if(!feof($fh)){
+	$fieldnames = explode(',',trim(fgets($fh)));
+}
+//override
+$fieldnames = array(
+	0 => 'size',
+	1 => 'pattern'
+);
+while (!feof($fh)) {
+	$tmp = explode(',',trim(fgets($fh)));
+	if(sizeof($tmp) < 2){
+		continue;
+	}
+	$entry = array();
+	foreach($fieldnames as $i => $fn){
+		$entry[$fn] = $tmp[$i] == '' ? null : $tmp[$i];
+	}
+	$entry['size'] = strtolower($entry['size']);
+	$entry['pattern'] = strtoupper($entry['pattern']);
+	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $rgbld_orb_list));
+	arsort($entry['orbs']);
+	$entry['pattern'] = reorder($entry['pattern'], $entry['orbs']);
+	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $orb_list));
+	$data[$entry['pattern']] = $entry;
+	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $rgbld_orb_list));
+	asort($entry['orbs']);
+	$entry['pattern'] = reorder($entry['pattern'], $entry['orbs']);
+	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $orb_list));
+	$data[$entry['pattern']] = $entry;
+}
+fclose($fh);
+
 
 $conn = connect_sql($host, $user, $pass, $schema);
 truncate_tables($conn);
