@@ -28,18 +28,14 @@ while (!feof($fh)) {
 	foreach($fieldnames as $i => $fn){
 		$entry[$fn] = $tmp[$i] == '' ? null : $tmp[$i];
 	}
-	$entry['size'] = strtolower($entry['size']);
+	$entry['size'] = $entry['size'] != '' ? strtolower($entry['size']) : 'm';
 	$entry['pattern'] = strtoupper($entry['pattern']);
-	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $rgbld_orb_list));
-	arsort($entry['orbs']);
-	$entry['pattern'] = reorder($entry['pattern'], $entry['orbs']);
-	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $orb_list));
-	$data[$entry['pattern']] = $entry;
-	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $rgbld_orb_list));
-	asort($entry['orbs']);
-	$entry['pattern'] = reorder($entry['pattern'], $entry['orbs']);
-	$entry['orbs'] = array_filter(count_orbs($entry['pattern'], $orb_list));
-	$data[$entry['pattern']] = $entry;
+
+	$all_colors = permute_board($entry['pattern']);
+	foreach($all_colors as $pattern){
+		$entry['orbs'] = array_filter(count_orbs($pattern, $orb_list));
+		$data[$pattern] = $entry;
+	}
 }
 fclose($fh);
 
@@ -47,19 +43,21 @@ fclose($fh);
 $conn = connect_sql($host, $user, $pass, $schema);
 truncate_tables($conn);
 $success = 0;
-$insert_board = $conn->prepare('INSERT INTO boards (size, pattern) VALUES (?,?);');
+$insert_board = $conn->prepare('INSERT INTO boards (size, pattern, orb_count) VALUES (?,?,?);');
 $insert_orbs = $conn->prepare('INSERT INTO orbs (bID, color, count) VALUES (?, ?, ?)');
 $insert_step = $conn->prepare('INSERT INTO steps (bID, pattern_board, pattern_match) VALUES (?, ?, ?)');
 $insert_combo = $conn->prepare('INSERT INTO combos (bID, sID, color, length, pattern_combo) VALUES (?, ?, ?, ?, ?)');
 $insert_style = $conn->prepare('INSERT INTO styles (cID, style) VALUES (?, ?)');
 foreach($data as $pattern => $entry){
 	$complete_success = true;
-	
+	if($entry['size'] != 'm'){
+		print_r($entry['size']);
+	}
 	$wh = $size_list[$entry['size']];
-	
 	$solve = solve_board(str_split($pattern), $wh);
+	$orb_count = sizeof($entry['orbs']);
 	
-	if(	!$insert_board->bind_param('ss', $entry['size'], $pattern) ||
+	if(	!$insert_board->bind_param('ssi', $entry['size'], $pattern, $orb_count) ||
 		!$insert_board->execute()){
 		trigger_error('Insert board(p:' . $pattern . ') failed: ' . $conn->error);
 		continue;

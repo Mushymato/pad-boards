@@ -3,7 +3,8 @@ CREATE TABLE boards (
     bID int PRIMARY KEY AUTO_INCREMENT,
     size nvarchar(1) NOT NULL DEFAULT 'm', -- s,m,l for 5x4,6x5,7x6
     pattern nvarchar(42) NOT NULL UNIQUE,
-	description nvarchar(100)
+	orb_count int NOT NULL,
+	description nvarchar(50)
 );
 CREATE TABLE orbs(
 	bID int,

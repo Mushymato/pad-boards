@@ -7,8 +7,10 @@
 <script src="board_filters.js" type="text/javascript"></script>
 <script>
 $(document).ready(function(){
-	addChangeColorListeners();
-	refreshAllColors();
+	initializeOrbMap();
+	addOrbRadioListeners();
+	updateOrbColors();
+	updateOrbRadios();
 	addMinOrbListeners();
 });
 </script>
@@ -18,7 +20,7 @@ $(document).ready(function(){
 include 'boards_common.php';
 include 'sql_param.php';
 $conn = connect_sql($host, $user, $pass, $schema);
-$boards = select_boards_by_size($conn);
+$boards = select_boards($conn);
 ?>
 <form><?php echo get_attribute_filters($boards);?></form>
 <?php 

@@ -6,7 +6,8 @@
 <script src="board_filters.js" type="text/javascript"></script>
 <script>
 $(document).ready(function(){
-	refreshAllColors();
+	initializeOrbMap();
+	updateOrbColors();
 });
 </script>
 </head>

@@ -76,39 +76,23 @@
 	width:40px;
 	height:40px;
 }
-.board-info {
-	min-width:40px;
-	min-height:40px;
-	width:auto;
-	height:auto;
-	overflow:hidden;
-}
 .board-info > div{
-	min-width:20px;
-	min-height:20px;
-	width:auto;
-	height:auto;
 	overflow:hidden;
 	text-align:center;
-	font-weight:bold;
 }
-.board-ratio{
-	min-width:40px;
-	min-height:40px;
+.board-ratio-combos{
+	width:20%;
 	width:auto;
 	height:auto;
 	margin: 0px 5px;
-	font-size:18pt;
 	padding: 2px;
+}
+.board-ratio-combos > div:nth-child(1){
 	border: solid 2px black;
 	border-radius: 4px;
+	font-weight:bold;
+	font-size:16pt;
 	font-stretch:ultra-condensed;
-}
-.board-combos{
-	margin:0px;
-	padding:0px 8px;
-	clear:both;
-	text-align:left;
 }
 .orb-bg{
 	margin: 0px;
@@ -122,6 +106,9 @@
 	height:auto;
 	overflow:hidden;
 	display:inline-block;
+}
+.grid.board-styles{
+	grid-template-columns: repeat(3, 1fr);
 }
 .style-box{
 	height:20px;
