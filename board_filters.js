@@ -1,5 +1,13 @@
 var orb_list = ["R", "B", "G", "L", "D"];
 var orb_map = {"R" : "R", "B" : "B", "G" : "G", "L" : "L", "D" : "D"};
+function initializeOrbMap(){
+	for(let orb of orb_list){
+		if(window.localStorage.getItem("orb-" + orb) === null){
+			window.localStorage.setItem("orb-" + orb, orb);
+		}
+		orb_map[orb] = window.localStorage.getItem("orb-" + orb);
+	}
+}
 function updateOrbColors(){
 	for(let orb of orb_list){
 		$("[data-orb]").removeClass(orb);
@@ -15,10 +23,8 @@ function updateOrbColors(){
 	}
 }
 function updateOrbRadios(){
-	console.log(orb_map);
 	for(let base of Object.keys(orb_map)){
 		for(let orb of orb_list){
-			console.log(orb + "-" + orb_map[base]);
 			if(orb != base){
 				var tmp = $("input[data-attribute^='" + orb + "-" + orb_map[base] + "']");
 				tmp.parent().css("opacity", 0.5);
@@ -47,15 +53,6 @@ function addOrbRadioListeners(){
 		});
 	});
 }
-function initializeOrbMap(){
-	for(let orb of orb_list){
-		if(window.localStorage.getItem("orb-" + orb) === null){
-			window.localStorage.setItem("orb-" + orb, orb);
-		}
-		orb_map[orb] = window.localStorage.getItem("orb-" + orb);
-	}
-}
-
 function minOrbFilter(){
 	$(".board-box").show();
 	for(let orb of orb_list.concat("H")){
@@ -84,6 +81,15 @@ function addMinOrbListeners(){
 		$(this).on("change", function() {
 			$(this).next().val($(this).val());
 			minOrbFilter();
+		});
+	});
+}
+function addStyleButtonListeners(){
+	$(".style-buttons > .style-button").each(function(index){
+		$(this).on("click", function() {
+			var data = $(this).attr("data-style").split("-");
+			var count = parseInt($(this).children("span").attr("data-style-count"));
+			$(this).children("span").attr("data-style-count", count+1);
 		});
 	});
 }

@@ -29,11 +29,15 @@ while (!feof($fh)) {
 		$entry[$fn] = $tmp[$i] == '' ? null : $tmp[$i];
 	}
 	$entry['size'] = $entry['size'] != '' ? strtolower($entry['size']) : 'm';
-	$entry['pattern'] = strtoupper($entry['pattern']);
+	$wh = $size_list[$entry['size']];
+	$entry['pattern'] = substr(strtoupper($entry['pattern']), 0, $wh[0]*$wh[1]);
 
 	$all_colors = permute_board($entry['pattern']);
 	foreach($all_colors as $pattern){
-		$entry['orbs'] = array_filter(count_orbs($pattern, $orb_list));
+		$entry['pattern'] = $pattern;
+		$entry['orbs'] = count_orbs($entry['pattern'], $orb_list);
+		$entry['orb_count'] = sizeof($entry['orbs']);
+		$entry['solve'] = solve_board(str_split($entry['pattern']),  $wh);
 		$data[$pattern] = $entry;
 	}
 }
@@ -42,17 +46,15 @@ fclose($fh);
 
 $conn = connect_sql($host, $user, $pass, $schema);
 truncate_tables($conn);
+
 $success = 0;
+mysqli_autocommit($conn, FALSE);
 $insert_board = $conn->prepare('INSERT INTO boards (size, pattern, orb_count) VALUES (?,?,?);');
 $insert_orbs = $conn->prepare('INSERT INTO orbs (bID, color, count) VALUES (?, ?, ?)');
 $insert_step = $conn->prepare('INSERT INTO steps (bID, pattern_board, pattern_match) VALUES (?, ?, ?)');
 $insert_combo = $conn->prepare('INSERT INTO combos (bID, sID, color, length, pattern_combo) VALUES (?, ?, ?, ?, ?)');
 $insert_style = $conn->prepare('INSERT INTO styles (cID, style) VALUES (?, ?)');
 foreach($data as $pattern => $entry){
-	$complete_success = true;
-	if($entry['size'] != 'm'){
-		print_r($entry['size']);
-	}
 	$wh = $size_list[$entry['size']];
 	$solve = solve_board(str_split($pattern), $wh);
 	$orb_count = sizeof($entry['orbs']);
@@ -60,6 +62,7 @@ foreach($data as $pattern => $entry){
 	if(	!$insert_board->bind_param('ssi', $entry['size'], $pattern, $orb_count) ||
 		!$insert_board->execute()){
 		trigger_error('Insert board(p:' . $pattern . ') failed: ' . $conn->error);
+		$conn->rollback(); 
 		continue;
 	}
 	$bID = $insert_board->insert_id;
@@ -68,7 +71,7 @@ foreach($data as $pattern => $entry){
 		if(	!$insert_orbs->bind_param('isi', $bID, $color, $count) ||
 			!$insert_orbs->execute()){
 			trigger_error('Insert orbs(b:' . $bID . ') failed: ' . $conn->error);
-			$complete_success = false;
+			$conn->rollback(); 
 			continue;
 		}
 	}
@@ -78,9 +81,8 @@ foreach($data as $pattern => $entry){
 		$p_match = implode(get_combined_match_pattern($step['solution'], $wh));
 		if(	!$insert_step->bind_param('iss', $bID, $p_board, $p_match) ||
 			!$insert_step->execute()){
-				die();
 			trigger_error('Insert step(b:' . $bID . ') failed: ' . $conn->error);
-			$complete_success = false;
+			$conn->rollback();
 			continue;
 		}
 		$sID = $insert_step->insert_id;
@@ -90,7 +92,7 @@ foreach($data as $pattern => $entry){
 			if(	!$insert_combo->bind_param('iisis', $bID, $sID, $combo['color'], $length, $p_combo) ||
 				!$insert_combo->execute()){
 				trigger_error('Insert combo(b:' . $bID . ' s:' . $sID . ') failed: ' . $conn->error);
-				$complete_success = false;
+				$conn->rollback(); 
 				continue;
 			}
 			$cID = $insert_combo->insert_id;
@@ -100,14 +102,16 @@ foreach($data as $pattern => $entry){
 					if(	!$insert_style->bind_param('is', $cID, $style) ||
 						!$insert_style->execute()){
 						trigger_error('Insert style(b:' . $bID . ' s:' . $sID . ' c:' . $cID . ') failed: ' . $conn->error);
-						$complete_success = false;
+						$conn->rollback(); 
 						continue;
 					}
 				}
 			}
 		}
 	}
-	$success = $success + ($complete_success ? 1 : 0);
+	if ($conn->commit()) {
+		$success++;
+	}
 }
 $insert_board->close();
 $insert_orbs->close();

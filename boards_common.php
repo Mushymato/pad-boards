@@ -1,4 +1,5 @@
 <?php
+$insert_size = 10;
 $size_list = array('s' => array(5,4), 'm' => array(6,5), 'l' => array(7,6));
 $orb_list = array('R', 'B', 'G', 'L', 'D', 'H', 'J', 'X', 'P', 'M');
 $rgbld_orb_list = array('R', 'B', 'G', 'L', 'D');
@@ -421,9 +422,9 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 	return true;
 }
 function select_boards($conn, $size = 'm', $color_count = 2){
-	$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and orbs.color="R" order by orbs.count asc;';
+	$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" order by orbs.count asc;';
 	$stmt = $conn->prepare($sql);
-	$stmt->bind_param('s', $size);
+	$stmt->bind_param('si', $size, $color_count);
 	$boards = execute_select_stmt($stmt);
 	$stmt->close();
 	
@@ -455,7 +456,7 @@ function select_boards($conn, $size = 'm', $color_count = 2){
 	}
 	return $boards;
 }
-function orb_style_icon($name, $color){
+function orb_style_icon($color, $name){
 	$style_icon = $name;
 	$data_row = '';
 	if($name == 'ROW'){
@@ -481,16 +482,17 @@ function display_boards($boards){
 	foreach($boards as $board){
 		$combo = 0;
 		$style_str = '';
+		$data_style = '';
 		foreach($board['styles'] as $name => $style){
 			foreach($style as $color => $count){
 				$combo += $count;
-				if($name == 'MISC'){
-					continue;
+				if($name != 'MISC'){
+					if(!in_array($color, $rgbld_orb_list) && $color != 'H'){
+						continue;
+					}
+					$data_style = $data_style . 'data-style-' . $name . '="' . $count . '"';
+					$style_str = $style_str . '<div class="style-box">' . orb_style_icon($color, $name) . '<span>x' . $count . '</span></div>';
 				}
-				if(!in_array($color, $rgbld_orb_list) && $color != 'H'){
-					continue;
-				}
-				$style_str = $style_str . '<div class="style-box">' . orb_style_icon($name, $color) . '<span>x' . $count . '</span></div>';
 			}
 		}
 		
@@ -502,40 +504,58 @@ function display_boards($boards){
 				$data_ratio = $data_ratio . 'data-ratio-' . $color . '="' . $board['orbs'][$color] . '" ';
 			}
 		}
-		$output = $output . '<div class="board-box" ' . $data_ratio . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $combo . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
+		$output = $output . '<div class="board-box" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $combo . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
-	return '<div class="float">' . $output . '</div>';
+	return $output;
 }
-function orb_radios($att_num, $checked = ''){
+function orb_radios($att_orb, $checked = ''){
 	$out = '';
 	global $rgbld_orb_list;
+	if(!in_array($att_orb, $rgbld_orb_list)){
+		return '<div class="orb-radio orb-bg ' . $att_orb . '"></div>';
+	}
 	foreach ($rgbld_orb_list as $i => $orb){
-		$out = $out . '<label class="orb-radio orb-bg ' . $orb . '"><input type="radio" name="attribute-' . $rgbld_orb_list[$att_num] . '" data-attribute="' . $rgbld_orb_list[$att_num] . '-' . $orb . '" value="' . $orb . '"><div class="orb-check"></div></label>';
+		$out = $out . '<label class="orb-radio orb-bg ' . $orb . '"><input type="radio" name="attribute-' . $att_orb . '" data-attribute="' . $att_orb . '-' . $orb . '" value="' . $orb . '"><div class="orb-check"></div></label>';
 	}
 	return $out;
 }
 function get_attribute_filters($boards){
-	global $rgbld_orb_list;
+	global $orb_list;
 	global $size_list;
 	$colors = array();
 	$wh = array(6, 5);
+	$styles = array();
 	foreach($boards as $board){
-		for($i = 0; $i < sizeof($rgbld_orb_list); $i++){
-			if(array_key_exists($rgbld_orb_list[$i], $board['orbs']) && !in_array($i, $colors)){
-				$colors[] = $i;
+		foreach($orb_list as $orb){
+			if(array_key_exists($orb, $board['orbs']) && !in_array($orb, $colors)){
+				$colors[] = $orb;
 			}
-			if($size_list[$board['size']][0] > $wh[0]){
-				$wh = $size_list[$boards['size']];
+		}
+		if($size_list[$board['size']][0] > $wh[0]){
+			$wh = $size_list[$board['size']];
+		}
+		foreach($board['styles'] as $name => $style){
+			foreach($style as $orb => $count){
+				if(!array_key_exists($orb, $styles)){
+					$styles[$orb] = array();
+				}
+				if($name != 'MISC' && !in_array($name, $styles[$orb])){
+					$styles[$orb][] = $name;
+				}
 			}
 		}
 	}
 	$out = '';
 	$max = $wh[0]*$wh[1];
-	foreach($colors as $i){
-		$out = $out . '<div class="grid filters" data-orb-base="' . $rgbld_orb_list[$i] . '"><div class="grid atts">' . orb_radios($i) . '</div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0">' . $max . '</div></div>';
+	foreach($colors as $orb){
+		sort($styles[$orb]);
+		$out = $out . '<div class="grid filters" data-orb-base="' . $orb . '"><div class="grid atts">' . orb_radios($orb) . '</div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0"><div class="selected-styles"></div>' . $max . '</div><div class="float style-buttons">';
+		foreach($styles[$orb] as $name){
+			$out = $out . '<div class="style-button" data-style="' . $orb . '-' . $name . '">' . orb_style_icon($orb, $name) . '<span data-style-count="0">x0</span></div>';
+		}
+		$out = $out . '</div></div>';
 	}
-	$out = $out . '<div class="grid filters" data-orb-base="H"><div class="orb-radio orb-bg H"></div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0">' . $max . '</div></div>';
 	
-	return '<fieldset class="board-filters"><legend>Board Filters</legend>' . $out . '</fieldset>';
+	return '<fieldset><legend>Board Filters</legend>' . $out . '</fieldset>';
 }
 ?>
