@@ -7,12 +7,10 @@
 <script src="board_filters.js" type="text/javascript"></script>
 <script>
 $(document).ready(function(){
-	initializeOrbMap();
-	addOrbRadioListeners();
+	initializeStorage();
+	addFilterListeners();
 	updateOrbColors();
 	updateOrbRadios();
-	addMinOrbListeners();
-	addStyleButtonListeners();
 });
 </script>
 </head>
@@ -26,7 +24,8 @@ include 'sql_param.php';
 $conn = connect_sql($host, $user, $pass, $schema);
 $size = array_key_exists('board_size', $_GET) ? $_GET['board_size'] : 'm';
 $orb_count = array_key_exists('orb_count', $_GET) ? intval($_GET['orb_count']) : 2;
-$boards = select_boards($conn, $size, $orb_count);
+$hearts = array_key_exists('hearts', $_GET) ? boolval($_GET['hearts']) : false;
+$boards = select_boards($conn, $size, $orb_count, $hearts);
 ?>
 <form action='' class="grid fset">
 	<fieldset>
@@ -42,6 +41,12 @@ $boards = select_boards($conn, $size, $orb_count);
 				echo option('s', '5x4', $size);
 				echo option('m', '6x5', $size);
 				echo option('l', '7x6', $size);
+			?>
+		</select>
+		<select name="hearts">
+			<?php
+				echo option(false, 'no hearts', $hearts);
+				echo option(true, 'with hearts', $hearts);
 			?>
 		</select>
 		<button type="submit" value="Submit">Submit</button>

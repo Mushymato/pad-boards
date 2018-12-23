@@ -421,12 +421,20 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 	}
 	return true;
 }
-function select_boards($conn, $size = 'm', $color_count = 2){
-	$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" order by orbs.count asc;';
-	$stmt = $conn->prepare($sql);
-	$stmt->bind_param('si', $size, $color_count);
-	$boards = execute_select_stmt($stmt);
-	$stmt->close();
+function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){	
+	if($hearts){
+		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="H" order by orbs.count asc;';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('si', $size, $color_count);
+		$boards = execute_select_stmt($stmt);
+		$stmt->close();
+	}else{
+		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" and boards.bID not in (select boards.bID from boards inner join orbs on boards.bID=orbs.bID where orbs.color="H") order by orbs.count asc;';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('si', $size, $color_count);
+		$boards = execute_select_stmt($stmt);
+		$stmt->close();
+	}
 	
 	$sql = 'select boards.bID, orbs.color, orbs.count from boards inner join orbs on boards.bID=orbs.bID where boards.size=?;';
 	$stmt = $conn->prepare($sql);
@@ -455,6 +463,43 @@ function select_boards($conn, $size = 'm', $color_count = 2){
 		}
 	}
 	return $boards;
+}
+function display_board_solve($conn, $bID){
+	$sql = 'select boards.bID, boards.pattern from boards where boards.bID=?;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('i', $bID);
+	$board = execute_select_stmt($stmt);
+	$stmt->close();
+	$sql = 'select steps.sID,steps.bID,steps.pattern_board,steps.pattern_match from steps where steps.bID=?;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('i', $bID);
+	$steps = execute_select_stmt($stmt);
+	$stmt->close();
+	$sql = 'select steps.bID,combos.cID,combos.color,styles.style from steps inner join combos on steps.sID=combos.sID left join styles on combos.cID=styles.cID where steps.bID=?;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('i', $bID);
+	$styles = execute_select_stmt($stmt);
+	$stmt->close();
+	
+	$board_out = array(get_board($board[0]['pattern']));
+	$match_out = array();
+	foreach($steps as $step){
+		$board_out[] = get_board($step['pattern_board']);
+		$match_out[] = get_board($step['pattern_match']);
+	}
+	
+	$style_out = array();
+	foreach($styles as $style){
+		if($style['style'] != null){
+			$style_out[] = '<div class="style-box">' . orb_style_icon($style['color'], $style['style']) . '</div>';
+		}
+	}
+	
+	$output = '<div>Total Combos ' . sizeof($styles) . '</div>Steps:<div class="float">' . implode($board_out) . '</div>';
+	if(sizeof($match_out) > 0){$output = $output . 'Matched:<div class="float">' . implode($match_out) . '</div>';}
+	if(sizeof($style_out) > 0){$output = $output . 'Styles:<div class="float board-info">' . implode($style_out) . '</div>';}
+	
+	return $output;
 }
 function orb_style_icon($color, $name){
 	$style_icon = $name;
@@ -486,16 +531,15 @@ function display_boards($boards){
 		foreach($board['styles'] as $name => $style){
 			foreach($style as $color => $count){
 				$combo += $count;
-				if($name != 'MISC'){
-					if(!in_array($color, $rgbld_orb_list) && $color != 'H'){
-						continue;
-					}
-					$data_style = $data_style . 'data-style-' . $name . '="' . $count . '"';
+				if($name != 'MISC' && (in_array($color, $rgbld_orb_list) || $color == 'H')){
+					$data_style = $data_style . $color . '-' .$name . ' ';
 					$style_str = $style_str . '<div class="style-box">' . orb_style_icon($color, $name) . '<span>x' . $count . '</span></div>';
 				}
 			}
 		}
-		
+		if(strlen($data_style) > 0){
+			$data_style = 'data-styles="' . trim($data_style) . '"';
+		}
 		$ratio = '';
 		$data_ratio = '';
 		foreach($orb_list as $color){
@@ -504,7 +548,7 @@ function display_boards($boards){
 				$data_ratio = $data_ratio . 'data-ratio-' . $color . '="' . $board['orbs'][$color] . '" ';
 			}
 		}
-		$output = $output . '<div class="board-box" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $combo . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
+		$output = $output . '<div class="board-box" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $combo . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?id=' . $board['bID'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
 	return $output;
 }
@@ -515,7 +559,7 @@ function orb_radios($att_orb, $checked = ''){
 		return '<div class="orb-radio orb-bg ' . $att_orb . '"></div>';
 	}
 	foreach ($rgbld_orb_list as $i => $orb){
-		$out = $out . '<label class="orb-radio orb-bg ' . $orb . '"><input type="radio" name="attribute-' . $att_orb . '" data-attribute="' . $att_orb . '-' . $orb . '" value="' . $orb . '"><div class="orb-check"></div></label>';
+		$out = $out . '<label class="orb-radio orb-bg ' . $orb . '"><input type="radio" class="hidden" name="attribute-' . $att_orb . '" data-attribute="' . $att_orb . '-' . $orb . '" value="' . $orb . '"><div class="orb-circle"></div></label>';
 	}
 	return $out;
 }
@@ -548,10 +592,10 @@ function get_attribute_filters($boards){
 	$out = '';
 	$max = $wh[0]*$wh[1];
 	foreach($colors as $orb){
-		sort($styles[$orb]);
 		$out = $out . '<div class="grid filters" data-orb-base="' . $orb . '"><div class="grid atts">' . orb_radios($orb) . '</div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0"><div class="selected-styles"></div>' . $max . '</div><div class="float style-buttons">';
+		sort($styles[$orb]);
 		foreach($styles[$orb] as $name){
-			$out = $out . '<div class="style-button" data-style="' . $orb . '-' . $name . '">' . orb_style_icon($orb, $name) . '<span data-style-count="0">x0</span></div>';
+			$out = $out . '<div class="style-button"><input type="checkbox" class="hidden" data-style="' . $orb . '-' . $name . '">' . orb_style_icon($orb, $name) . '</div>';
 		}
 		$out = $out . '</div></div>';
 	}

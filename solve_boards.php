@@ -14,32 +14,10 @@ $(document).ready(function(){
 <body>
 <?php
 include 'boards_common.php';
-$time_start = microtime(true);
-if(array_key_exists('pattern', $_GET)){
-	$pattern_array = str_split($_GET['pattern']);
-	$solve = solve_board($pattern_array, $size_list['m']);
-	$step_boards = array(get_board_arr($pattern_array));
-	$match_boards = array();
-	$styles = array();
-	foreach($solve as $step){
-		$step_boards[] = get_board_arr($step['board']);
-		if($step['solution']){
-			$match_boards[] = get_board_arr(get_combined_match_pattern($step['solution']));
-			foreach($step['solution'] as $combo){
-				if($combo['styles']){
-					foreach($combo['styles'] as $style){
-						$styles[] = '<div class="style-box">' . orb_style_icon($style, $combo['color']) . '</div>';
-					}
-				}
-			}
-		}
-	}
-	echo '<div>Total Combos ' . count_combos($solve) . '</div>';
-	echo 'Steps:<div class="float">' . implode($step_boards) , '</div>';
-	if(sizeof($match_boards) > 0){echo 'Matched:<div class="float">' . implode($match_boards) , '</div>';}
-	if(sizeof($styles) > 0){echo 'Styles:<div class="float board-info">' . implode($styles) , '</div>';}
-}
-echo '<p>Total execution time in seconds: ' . (microtime(true) - $time_start) . '</p>' . PHP_EOL;
+include 'sql_param.php';
+$conn = connect_sql($host, $user, $pass, $schema);
+$bID = array_key_exists('id', $_GET) ? $_GET['id'] : '1';
+echo display_board_solve($conn, $bID);
 ?>
 <div><a href="display_boards.php">Back</a></div>
 </body>

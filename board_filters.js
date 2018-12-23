@@ -1,6 +1,6 @@
 var orb_list = ["R", "B", "G", "L", "D"];
 var orb_map = {"R" : "R", "B" : "B", "G" : "G", "L" : "L", "D" : "D"};
-function initializeOrbMap(){
+function initializeStorage(){
 	for(let orb of orb_list){
 		if(window.localStorage.getItem("orb-" + orb) === null){
 			window.localStorage.setItem("orb-" + orb, orb);
@@ -36,24 +36,7 @@ function updateOrbRadios(){
 		}
 	}
 }
-function addOrbRadioListeners(){
-	$("input[data-attribute]").each(function(index) {
-		$(this).on("click", function(){
-			var data = $(this).attr("data-attribute").split("-");
-			for(let base of Object.keys(orb_map)){
-				if(orb_map[base] == data[1]){
-					orb_map[base] = orb_map[data[0]];
-					window.localStorage.setItem("orb-" + base, orb_map[base]);
-				}
-			}
-			orb_map[data[0]] = data[1]; 
-			window.localStorage.setItem("orb-" + data[0], data[1]);
-			updateOrbColors();
-			updateOrbRadios();
-		});
-	});
-}
-function minOrbFilter(){
+function toggleFilters(){
 	$(".board-box").show();
 	for(let orb of orb_list.concat("H")){
 		var tmp = $("[data-orb-base^='" + orb + "'] > .orb-count > input[type^='text']");
@@ -69,8 +52,26 @@ function minOrbFilter(){
 			}, params);
 		}
 	}
+	$(".style-button > input[type^='checkbox']:checked").each(function(){
+		$(".board-box:not([data-styles*='" + $(this).attr("data-style") + "'])").hide();
+	});
 }
-function addMinOrbListeners(){
+function addFilterListeners(){
+	$("input[data-attribute]").each(function(index) {
+		$(this).on("click", function(){
+			var data = $(this).attr("data-attribute").split("-");
+			for(let base of Object.keys(orb_map)){
+				if(orb_map[base] == data[1]){
+					orb_map[base] = orb_map[data[0]];
+					window.localStorage.setItem("orb-" + base, orb_map[base]);
+				}
+			}
+			orb_map[data[0]] = data[1]; 
+			window.localStorage.setItem("orb-" + data[0], data[1]);
+			updateOrbColors();
+			updateOrbRadios();
+		});
+	});
 	$(".orb-count > input[type^='range']").each(function(index){
 		$(this).on("change", function() {
 			$(this).prev().val($(this).val());
@@ -83,13 +84,9 @@ function addMinOrbListeners(){
 			minOrbFilter();
 		});
 	});
-}
-function addStyleButtonListeners(){
 	$(".style-buttons > .style-button").each(function(index){
 		$(this).on("click", function() {
-			var data = $(this).attr("data-style").split("-");
-			var count = parseInt($(this).children("span").attr("data-style-count"));
-			$(this).children("span").attr("data-style-count", count+1);
+			toggleFilters();
 		});
 	});
 }

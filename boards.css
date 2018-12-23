@@ -134,20 +134,22 @@
 	width:30px;
 	height:30px;
 }
-.orb-check{
+.orb-circle{
 	z-index:1;
 	width:28px;
 	height:28px;
 }
-.orb-radio input[type^='radio']{
+input.hidden{
 	margin:0px;
 	position:absolute;
 	opacity:0;
 	cursor:pointer;
+}
+.orb-radio input[type^='radio']{
 	width:30px;
 	height:30px;
 }
-.orb-radio input[type^='radio']:checked ~ .orb-check{
+.orb-radio input[type^='radio']:checked ~ .orb-circle{
 	border:ridge 1px gray;
 	border-radius: 50px;
 }
@@ -170,4 +172,29 @@
 .style-buttons{
 	display: flex;
 	align-items:center;
+	flex-wrap: wrap;
+	overflow:visible;
+}
+.style-button input[type^='checkbox']{
+	width:28px;
+	height:20px;
+	z-index:1;
+}
+.style-button input[type^='checkbox']:checked ~ div.R ~ img{
+	filter: drop-shadow(0 0 5px red);
+}
+.style-button input[type^='checkbox']:checked ~ div.B ~ img{
+	filter: drop-shadow(0 0 5px blue);
+}
+.style-button input[type^='checkbox']:checked ~ div.G ~ img{
+	filter: drop-shadow(0 0 5px green);
+}
+.style-button input[type^='checkbox']:checked ~ div.L ~ img{
+	filter: drop-shadow(0 0 5px yellow);
+}
+.style-button input[type^='checkbox']:checked ~ div.D ~ img{
+	filter: drop-shadow(0 0 5px purple);
+}
+.style-button input[type^='checkbox']:checked ~ div.H ~ img{
+	filter: drop-shadow(0 0 5px #E75480);
 }
