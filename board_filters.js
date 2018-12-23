@@ -1,12 +1,19 @@
 var orb_list = ["R", "B", "G", "L", "D"];
 var orb_map = {"R" : "R", "B" : "B", "G" : "G", "L" : "L", "D" : "D"};
-function initializeStorage(){
+function initializeOrbMap(){
 	for(let orb of orb_list){
 		if(window.localStorage.getItem("orb-" + orb) === null){
 			window.localStorage.setItem("orb-" + orb, orb);
 		}
 		orb_map[orb] = window.localStorage.getItem("orb-" + orb);
 	}
+}
+function reset(){
+	console.log("resetting");
+	window.localStorage.clear();
+	initializeOrbMap();
+	updateOrbColors();
+	updateOrbRadios();
 }
 function updateOrbColors(){
 	for(let orb of orb_list){
@@ -89,4 +96,5 @@ function addFilterListeners(){
 			toggleFilters();
 		});
 	});
+	$(".reset-button").on("click", reset);
 }

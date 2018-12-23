@@ -600,6 +600,6 @@ function get_attribute_filters($boards){
 		$out = $out . '</div></div>';
 	}
 	
-	return '<fieldset><legend>Board Filters</legend>' . $out . '</fieldset>';
+	return '<fieldset><legend>Board Filters</legend>' . $out . '<button type="button" class="reset-button">Reset</button></fieldset>';
 }
 ?>

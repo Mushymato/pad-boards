@@ -7,7 +7,7 @@
 <script src="board_filters.js" type="text/javascript"></script>
 <script>
 $(document).ready(function(){
-	initializeStorage();
+	initializeOrbMap();
 	addFilterListeners();
 	updateOrbColors();
 	updateOrbRadios();
