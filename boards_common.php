@@ -451,7 +451,13 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 	$board_orbs = execute_select_stmt($stmt, 'bID');
 	$stmt->close();
 	
-	$sql = 'select boards.bID, combos.color, styles.style, count(combos.cID) style_counts from boards inner join combos on boards.bID=combos.bID left join styles on combos.cID=styles.cID where boards.size=? group by boards.bID,combos.color,styles.style;';
+	$sql = 'select combos.bID, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.size=? group by boards.bID;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_combo_count = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
+
+	$sql = 'select boards.bID, combos.color, styles.style, count(combos.cID) style_counts from boards inner join combos on boards.bID=combos.bID inner join styles on combos.cID=styles.cID where boards.size=? group by boards.bID,combos.color,styles.style;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
 	$board_styles = execute_select_stmt($stmt, 'bID');
@@ -462,11 +468,10 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 		foreach($board_orbs[$board['bID']] as $orb){
 			$board['orbs'][$orb['color']] = $orb['count'];
 		}
-		$board['styles'] = array();
-		foreach($board_styles[$board['bID']] as $style){
-			if($style['style'] == null){
-				$board['styles']['MISC'][$style['color']] = $style['style_counts'];
-			}else{
+		$board['combo'] = $board_combo_count[$board['bID']][0]['combo_count'];
+		if(array_key_exists($board['bID'], $board_styles)){
+			$board['styles'] = array();
+			foreach($board_styles[$board['bID']] as $style){
 				$board['styles'][$style['style']][$style['color']] = $style['style_counts'];
 			}
 		}
@@ -474,7 +479,7 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 	return $boards;
 }
 function display_board_solve($conn, $pattern){
-	$sql = 'select boards.bID, boards.pattern, boards.size from boards where boards.pattern=?;';
+	$sql = 'select boards.bID, boards.pattern, boards.size, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.pattern=? group by boards.bID;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $pattern);
 	$board = execute_select_stmt($stmt);
@@ -517,17 +522,26 @@ function display_board_solve($conn, $pattern){
 	}else{
 		$size = $board[0]['size'];
 		$bID = $board[0]['bID'];
+		
+		$sql = 'select combos.bID, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.bID=?;';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('s', $size);
+		$combo_count = execute_select_stmt($stmt);
+		$stmt->close();
+		
 		$sql = 'select steps.sID,steps.bID,steps.pattern_board,steps.pattern_match from steps where steps.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('i', $bID);
 		$steps = execute_select_stmt($stmt);
 		$stmt->close();
-		$sql = 'select steps.bID,combos.cID,combos.color,styles.style from steps inner join combos on steps.sID=combos.sID left join styles on combos.cID=styles.cID where steps.bID=?;';
+		
+		$sql = 'select steps.bID,combos.cID,combos.color,styles.style from steps inner join combos on steps.sID=combos.sID inner join styles on combos.cID=styles.cID where steps.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('i', $bID);
 		$styles = execute_select_stmt($stmt);
 		$stmt->close();
-		$combos = sizeof($styles);
+		
+		$combos = $board[0]['combo_count'];
 		$board_out = array();
 		$prev_board = $board[0]['pattern'];
 		foreach($steps as $step){
@@ -572,15 +586,15 @@ function display_boards($boards){
 	global $rgbld_orb_list;
 	$output = '';
 	foreach($boards as $board){
-		$combo = 0;
 		$style_str = '';
 		$data_style = '';
-		foreach($board['styles'] as $name => $style){
-			foreach($style as $color => $count){
-				$combo += $count;
-				if($name != 'MISC' && (in_array($color, $rgbld_orb_list) || $color == 'H')){
-					$data_style = $data_style . $color . '-' .$name . ' ';
-					$style_str = $style_str . '<div class="style-box">' . orb_style_icon($color, $name) . '<span>x' . $count . '</span></div>';
+		if(array_key_exists('styles', $board)){
+			foreach($board['styles'] as $name => $style){
+				foreach($style as $color => $count){
+					if(in_array($color, $rgbld_orb_list) || $color == 'H'){
+						$data_style = $data_style . $color . '-' .$name . ' ';
+						$style_str = $style_str . '<div class="style-box">' . orb_style_icon($color, $name) . '<span>x' . $count . '</span></div>';
+					}
 				}
 			}
 		}
@@ -595,7 +609,7 @@ function display_boards($boards){
 				$data_ratio = $data_ratio . 'data-ratio-' . $color . '="' . $board['orbs'][$color] . '" ';
 			}
 		}
-		$output = $output . '<div class="board-box" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $combo . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
+		$output = $output . '<div class="board-box" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
 	return $output;
 }
@@ -625,13 +639,15 @@ function get_attribute_filters($boards){
 		if($size_list[$board['size']][0] > $wh[0]){
 			$wh = $size_list[$board['size']];
 		}
-		foreach($board['styles'] as $name => $style){
-			foreach($style as $orb => $count){
-				if(!array_key_exists($orb, $styles)){
-					$styles[$orb] = array();
-				}
-				if($name != 'MISC' && !in_array($name, $styles[$orb])){
-					$styles[$orb][] = $name;
+		if(array_key_exists('styles', $board)){
+			foreach($board['styles'] as $name => $style){
+				foreach($style as $orb => $count){
+					if(!array_key_exists($orb, $styles)){
+						$styles[$orb] = array();
+					}
+					if($name != 'MISC' && !in_array($name, $styles[$orb])){
+						$styles[$orb][] = $name;
+					}
 				}
 			}
 		}
