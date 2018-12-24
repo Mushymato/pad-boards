@@ -432,7 +432,7 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 }
 function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){	
 	if($hearts){
-		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="H" order by orbs.count asc;';
+		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" and boards.bID in (select boards.bID from boards inner join orbs on boards.bID=orbs.bID where orbs.color="H") order by orbs.count asc;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('si', $size, $color_count);
 		$boards = execute_select_stmt($stmt);

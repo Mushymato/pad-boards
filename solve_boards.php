@@ -19,6 +19,6 @@ $conn = connect_sql($host, $user, $pass, $schema);
 $pattern = array_key_exists('pattern', $_GET) ? $_GET['pattern'] : '1';
 echo display_board_solve($conn, $pattern);
 ?>
-<div><a href="display_boards.php">Back</a></div>
+<div><a href="#" onclick="window.history.back();">Back</a></div>
 </body>
 </html>
