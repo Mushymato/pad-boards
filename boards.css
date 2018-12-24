@@ -45,7 +45,7 @@
 	grid-template-columns: repeat(4, 1fr);
 }
 .grid.atts{
-	grid-template-columns: repeat(5, 30px);
+	grid-template-columns: repeat(6, 30px);
 }
 .grid.board-styles{
 	grid-template-columns: repeat(3, 1fr);
@@ -134,10 +134,9 @@
 	width:30px;
 	height:30px;
 }
-.orb-circle{
-	z-index:1;
-	width:28px;
-	height:28px;
+.orb-radio.disabled{
+	opacity:0.5;
+	filter:grayscale(100%);
 }
 input.hidden{
 	margin:0px;
@@ -148,10 +147,6 @@ input.hidden{
 .orb-radio input[type^='radio']{
 	width:30px;
 	height:30px;
-}
-.orb-radio input[type^='radio']:checked ~ .orb-circle{
-	border:ridge 1px gray;
-	border-radius: 50px;
 }
 .orb-count{
 	display: flex;

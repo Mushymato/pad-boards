@@ -552,14 +552,14 @@ function display_boards($boards){
 	}
 	return $output;
 }
-function orb_radios($att_orb, $checked = ''){
+function orb_radios($att_orb){
 	$out = '';
 	global $rgbld_orb_list;
 	if(!in_array($att_orb, $rgbld_orb_list)){
 		return '<div class="orb-radio orb-bg ' . $att_orb . '"></div>';
 	}
 	foreach ($rgbld_orb_list as $i => $orb){
-		$out = $out . '<label class="orb-radio orb-bg ' . $orb . '"><input type="radio" class="hidden" name="attribute-' . $att_orb . '" data-attribute="' . $att_orb . '-' . $orb . '" value="' . $orb . '"><div class="orb-circle"></div></label>';
+		$out = $out . '<label class="orb-radio disabled orb-bg ' . $orb . '"><input type="radio" class="hidden" data-attribute="' . $att_orb . '-' . $orb . '" value="' . $orb . '"><div class="orb-circle"></div></label>';
 	}
 	return $out;
 }
@@ -592,14 +592,14 @@ function get_attribute_filters($boards){
 	$out = '';
 	$max = $wh[0]*$wh[1];
 	foreach($colors as $orb){
-		$out = $out . '<div class="grid filters" data-orb-base="' . $orb . '"><div class="grid atts">' . orb_radios($orb) . '</div><div class="orb-count"><input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0"><div class="selected-styles"></div>' . $max . '</div><div class="float style-buttons">';
+		$out = $out . '<div class="grid filters" data-orb-base="' . $orb . '"><div class="grid atts">' . orb_radios($orb) . '</div><div class="orb-count">&ge;<input type="text" maxlength="2" value="0"><input type="range" min="0" max="' . $max . '" value="0"><div class="selected-styles"></div>' . $max . '</div><div class="float style-buttons">';
 		sort($styles[$orb]);
 		foreach($styles[$orb] as $name){
-			$out = $out . '<div class="style-button"><input type="checkbox" class="hidden" data-style="' . $orb . '-' . $name . '">' . orb_style_icon($orb, $name) . '</div>';
+			$out = $out . '<div class="style-button"><input type="checkbox" class="hidden" data-style="' . $name . '">' . orb_style_icon($orb, $name) . '</div>';
 		}
 		$out = $out . '</div></div>';
 	}
 	
-	return '<fieldset><legend>Board Filters</legend>' . $out . '<button type="button" class="reset-button">Reset</button></fieldset>';
+	return '<fieldset><legend>Board Filters</legend>' . $out . '<button type="button" class="reset-colors">Reset Colors</button><button type="button" class="reset-filters">Reset Filters</button></fieldset>';
 }
 ?>

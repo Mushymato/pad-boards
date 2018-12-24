@@ -1,22 +1,44 @@
-var orb_list = ["R", "B", "G", "L", "D"];
-var orb_map = {"R" : "R", "B" : "B", "G" : "G", "L" : "L", "D" : "D"};
+var orb_base_list = ["R", "B", "G", "L", "D"];
+var orb_map = {};
+var board_filters = {};
 function initializeOrbMap(){
-	for(let orb of orb_list){
-		if(window.localStorage.getItem("orb-" + orb) === null){
-			window.localStorage.setItem("orb-" + orb, orb);
+	if(window.localStorage.getItem("orb_map") === null){
+		window.localStorage.setItem("orb_map", JSON.stringify({"R" : "R", "B" : "B", "G" : "G", "L" : "L", "D" : "D"}));
+	}
+	orb_map = JSON.parse(window.localStorage.getItem("orb_map"));
+}
+function intializeFilters(){
+	if(window.sessionStorage.getItem("board_filters") === null){
+		window.sessionStorage.setItem("board_filters", JSON.stringify({}));
+	}
+	board_filters = JSON.parse(window.sessionStorage.getItem("board_filters"));
+	for(let color of Object.keys(board_filters)){
+		for(let style of Object.keys(board_filters[color])){
+			if(style === "count"){
+				$("[data-orb-base^='" + color + "'] > .orb-count > input").val(board_filters[color][style]);
+			}else if(board_filters[color][style]){
+				console.log("COLOR:"+color, "STYLE:"+style);
+				console.log($("[data-orb-base^='" + color + "'] > .style-buttons > .style-button > input[data-style^='" + style + "']"));
+				$("[data-orb-base^='" + color + "'] > .style-buttons > .style-button > input[data-style^='" + style + "']").prop("checked", board_filters[color][style]);
+			}
 		}
-		orb_map[orb] = window.localStorage.getItem("orb-" + orb);
 	}
 }
-function reset(){
-	console.log("resetting");
+function resetColors(){
 	window.localStorage.clear();
 	initializeOrbMap();
 	updateOrbColors();
 	updateOrbRadios();
 }
+function resetFilters(){
+	window.sessionStorage.clear();
+	$(".style-button > input").prop("checked", false);
+	$(".orb-count > input").val(0);
+	intializeFilters();
+	updateFilters();
+}
 function updateOrbColors(){
-	for(let orb of orb_list){
+	for(let orb of orb_base_list){
 		$("[data-orb]").removeClass(orb);
 	}
 	for(let base of Object.keys(orb_map)){
@@ -30,38 +52,38 @@ function updateOrbColors(){
 	}
 }
 function updateOrbRadios(){
+	var tmp = $("input[data-attribute]");
+	tmp.prop("checked", false);
+	tmp.parent().addClass("disabled");
 	for(let base of Object.keys(orb_map)){
-		for(let orb of orb_list){
-			if(orb != base){
-				var tmp = $("input[data-attribute^='" + orb + "-" + orb_map[base] + "']");
-				tmp.parent().css("opacity", 0.5);
-			}else{
-				var tmp = $("input[data-attribute^='" + orb + "-" + orb_map[base] + "']");
+		for(let orb of orb_base_list){
+			if(orb == base){
+				tmp = $("input[data-attribute^='" + orb + "-" + orb_map[base] + "']");
 				tmp.prop("checked", true);
-				tmp.parent().css("opacity", 1);
+				tmp.parent().removeClass("disabled");
 			}
 		}
 	}
 }
-function toggleFilters(){
+function updateFilters(){
 	$(".board-box").show();
-	for(let orb of orb_list.concat("H")){
-		var tmp = $("[data-orb-base^='" + orb + "'] > .orb-count > input[type^='text']");
-		if(tmp.length > 0){
-			var params = [orb, parseInt(tmp.val())];
-			$(".board-box").each(function(){
-				var ratio_attr = ("data-ratio-" + params[0]).toLowerCase();
-				var count = parseInt($(this).attr(ratio_attr));
-				count = isNaN(count) ? 0 : count;
-				if(count < params[1]){
-					$(this).hide();
-				}
-			}, params);
+	for(let color of Object.keys(board_filters)){
+		for(let style of Object.keys(board_filters[color])){
+			if(style === "count"){
+				var params = [color, board_filters[color][style]];
+				$(".board-box").each(function(){
+					var ratio_attr = ("data-ratio-" + params[0]).toLowerCase();
+					var count = parseInt($(this).attr(ratio_attr));
+					count = isNaN(count) ? 0 : count;
+					if(count < params[1]){
+						$(this).hide();
+					}
+				}, params);
+			}else if(board_filters[color][style]){
+				$(".board-box:not([data-styles*='" + color + "-" + style + "'])").hide();
+			}
 		}
 	}
-	$(".style-button > input[type^='checkbox']:checked").each(function(){
-		$(".board-box:not([data-styles*='" + $(this).attr("data-style") + "'])").hide();
-	});
 }
 function addFilterListeners(){
 	$("input[data-attribute]").each(function(index) {
@@ -70,11 +92,10 @@ function addFilterListeners(){
 			for(let base of Object.keys(orb_map)){
 				if(orb_map[base] == data[1]){
 					orb_map[base] = orb_map[data[0]];
-					window.localStorage.setItem("orb-" + base, orb_map[base]);
 				}
 			}
 			orb_map[data[0]] = data[1]; 
-			window.localStorage.setItem("orb-" + data[0], data[1]);
+			window.localStorage.setItem("orb_map", JSON.stringify(orb_map));
 			updateOrbColors();
 			updateOrbRadios();
 		});
@@ -82,19 +103,43 @@ function addFilterListeners(){
 	$(".orb-count > input[type^='range']").each(function(index){
 		$(this).on("change", function() {
 			$(this).prev().val($(this).val());
-			minOrbFilter();
+			var color = $(this).parent().parent().attr("data-orb-base");
+			if(board_filters[color] == undefined){
+				board_filters[color] = {};
+			}
+			board_filters[color]["count"] = $(this).val();
+			window.sessionStorage.setItem("board_filters", JSON.stringify(board_filters));
+			updateFilters();
 		});
 	});
 	$(".orb-count > input[type^='text']").each(function(index){
 		$(this).on("change", function() {
 			$(this).next().val($(this).val());
-			minOrbFilter();
+			var color = $(this).parent().parent().attr("data-orb-base");
+			if(board_filters[color] == undefined){
+				board_filters[color] = {};
+			}
+			board_filters[color]["count"] = $(this).val();
+			window.sessionStorage.setItem("board_filters", JSON.stringify(board_filters));
+			updateFilters();
 		});
 	});
-	$(".style-buttons > .style-button").each(function(index){
+	$(".style-buttons > .style-button > input[type^='checkbox']").each(function(index){
 		$(this).on("click", function() {
-			toggleFilters();
+			var color = $(this).parent().parent().parent().attr("data-orb-base");
+			var style = $(this).attr("data-style");
+			if(board_filters[color] == undefined){
+				board_filters[color] = {};
+			}
+			if(!board_filters[color][style]){
+				board_filters[color][style] = true;
+			}else{
+				board_filters[color][style] = false;
+			}
+			window.sessionStorage.setItem("board_filters", JSON.stringify(board_filters));
+			updateFilters();
 		});
 	});
-	$(".reset-button").on("click", reset);
+	$(".reset-colors").on("click", resetColors);
+	$(".reset-filters").on("click", resetFilters);
 }

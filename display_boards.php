@@ -8,9 +8,11 @@
 <script>
 $(document).ready(function(){
 	initializeOrbMap();
+	intializeFilters();
 	addFilterListeners();
 	updateOrbColors();
 	updateOrbRadios();
+	updateFilters();
 });
 </script>
 </head>
@@ -45,8 +47,8 @@ $boards = select_boards($conn, $size, $orb_count, $hearts);
 		</select>
 		<select name="hearts">
 			<?php
-				echo option(false, 'no hearts', $hearts);
-				echo option(true, 'with hearts', $hearts);
+				echo option('0', 'no hearts', $hearts);
+				echo option('1', 'with hearts', $hearts);
 			?>
 		</select>
 		<button type="submit" value="Submit">Submit</button>
