@@ -504,10 +504,9 @@ function display_board_solve($conn, $pattern){
 		$combos = count_combos($solve);
 		$board_out = array();
 		$prev_board = $pattern_array;
-		$style_out = array();
 		foreach($solve as $step){
 			if($step['solution']){
-				$board_out[] = get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution']), $size);
+				$style_out = array();
 				foreach($step['solution'] as $combo){
 					if($combo['styles']){
 						foreach($combo['styles'] as $style){
@@ -515,10 +514,11 @@ function display_board_solve($conn, $pattern){
 						}
 					}
 				}
+				$board_out[] = '<div class="board-box"><div class="grid board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution']), $size) . '</div>';
 			}
 			$prev_board = $step['board'];
 		}
-		$board_out[] = get_board_arr($prev_board, $size);
+		$board_out[] = '<div class="board-box"><div class="grid board-styles">' . implode($style_out) . '</div>' . get_board_arr($prev_board, $size) . '</div>';
 	}else{
 		$size = $board[0]['size'];
 		$bID = $board[0]['bID'];
@@ -529,35 +529,35 @@ function display_board_solve($conn, $pattern){
 		$combo_count = execute_select_stmt($stmt);
 		$stmt->close();
 		
-		$sql = 'select steps.sID,steps.bID,steps.pattern_board,steps.pattern_match from steps where steps.bID=?;';
+		$sql = 'select steps.bID,steps.sID,steps.pattern_board,steps.pattern_match from steps where steps.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('i', $bID);
 		$steps = execute_select_stmt($stmt);
 		$stmt->close();
 		
-		$sql = 'select steps.bID,combos.cID,combos.color,styles.style from steps inner join combos on steps.sID=combos.sID inner join styles on combos.cID=styles.cID where steps.bID=?;';
+		$sql = 'select steps.sID,combos.cID,combos.color,styles.style from steps inner join combos on steps.sID=combos.sID inner join styles on combos.cID=styles.cID where steps.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('i', $bID);
-		$styles = execute_select_stmt($stmt);
+		$styles = execute_select_stmt($stmt, 'sID');
 		$stmt->close();
 		
 		$combos = $board[0]['combo_count'];
 		$board_out = array();
 		$prev_board = $board[0]['pattern'];
 		foreach($steps as $step){
-			$board_out[] = get_board_matched($prev_board, $step['pattern_match'], $size);
+			$style_out = array();
+			if(array_key_exists($step['sID'], $styles)){
+				foreach($styles[$step['sID']] as $style){
+					$style_out[] = '<div class="style-box">' . orb_style_icon($style['color'], $style['style']) . '</div>';
+				}
+			}
+			$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_matched($prev_board, $step['pattern_match'], $size) . '</div>';
 			$prev_board = $step['pattern_board'];
 		}
-		$board_out[] = get_board($prev_board, $size);
-		$style_out = array();
-		foreach($styles as $style){
-			if($style['style'] != null){
-				$style_out[] = '<div class="style-box">' . orb_style_icon($style['color'], $style['style']) . '</div>';
-			}
-		}
+		$board_out[] = '<div class="board-box"><div class="float board-styles"></div>' . get_board($prev_board, $size) . '</div>';
 	}
 	$output = '<div>Total Combos ' . $combos . '</div><div class="float">' . implode($board_out) . '</div>';
-	if(sizeof($style_out) > 0){$output = $output . 'Styles:<div class="float board-info">' . implode($style_out) . '</div>';}
+	//if(sizeof($style_out) > 0){$output = $output . 'Styles:<div class="float board-info">' . implode($style_out) . '</div>';}
 	return $output;
 }
 function orb_style_icon($color, $name){

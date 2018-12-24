@@ -50,6 +50,9 @@
 .grid.board-styles{
 	grid-template-columns: repeat(3, 1fr);
 }
+.float.board-styles{
+	min-height: 20px;
+}
 .board {
 	background-image:url('img/boardbg.png');
 	background-size:80px 80px;
