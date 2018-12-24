@@ -16,8 +16,8 @@ $(document).ready(function(){
 include 'boards_common.php';
 include 'sql_param.php';
 $conn = connect_sql($host, $user, $pass, $schema);
-$bID = array_key_exists('id', $_GET) ? $_GET['id'] : '1';
-echo display_board_solve($conn, $bID);
+$pattern = array_key_exists('pattern', $_GET) ? $_GET['pattern'] : '1';
+echo display_board_solve($conn, $pattern);
 ?>
 <div><a href="display_boards.php">Back</a></div>
 </body>
