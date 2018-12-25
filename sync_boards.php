@@ -30,6 +30,10 @@ while (!feof($fh)) {
 	}
 	$entry['size'] = $entry['size'] != '' ? strtolower($entry['size']) : 'm';
 	$wh = $size_list[$entry['size']];
+	if(strlen($entry['pattern']) < $wh[0]*$wh[1]){
+		echo $entry['pattern'] . ' too small.' . PHP_EOL;
+		continue;
+	}
 	$entry['pattern'] = substr(strtoupper($entry['pattern']), 0, $wh[0]*$wh[1]);
 
 	$all_colors = permute_board($entry['pattern']);

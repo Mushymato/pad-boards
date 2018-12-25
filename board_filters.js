@@ -15,11 +15,22 @@ function intializeFilters(){
 	for(let color of Object.keys(board_filters)){
 		for(let style of Object.keys(board_filters[color])){
 			if(style === "count"){
-				$("[data-orb-base^='" + color + "'] > .orb-count > input").val(board_filters[color][style]);
+				var tmp = $("[data-orb-base^='" + color + "'] > .orb-count > input");
+				console.log(tmp);
+				if(tmp.length > 0){
+					tmp.val(board_filters[color][style]);
+				}else{
+					delete board_filters[color][style];
+				}
 			}else if(board_filters[color][style]){
-				console.log("COLOR:"+color, "STYLE:"+style);
-				console.log($("[data-orb-base^='" + color + "'] > .style-buttons > .style-button > input[data-style^='" + style + "']"));
-				$("[data-orb-base^='" + color + "'] > .style-buttons > .style-button > input[data-style^='" + style + "']").prop("checked", board_filters[color][style]);
+				var tmp = $("[data-orb-base^='" + color + "'] > .style-buttons > .style-button > input[data-style^='" + style + "']");
+				console.log(color + "-" + style);
+				console.log(tmp);
+				if(tmp.length > 0){
+					tmp.prop("checked", board_filters[color][style]);
+				}else{
+					delete board_filters[color][style];
+				}
 			}
 		}
 	}

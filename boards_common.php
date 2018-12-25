@@ -567,14 +567,11 @@ function orb_style_icon($color, $name){
 		$style_icon = $color . 'RE';
 		$data_row = 'data-row-color="' . $color . '"';
 	}else if($color == 'H'){
-		if($name == 'TPA'){
-			$style_icon = 'HOE';
-		}else if($name == 'LA'){
-			$style_icon == 'LS';
-		}else if($name == 'VDP'){
-			$style_icon = 'SFUA';
-		}else if($name == 'CROSS'){
-			$style_icon = 'HCROSS';
+		switch($name){
+			case 'TPA': $style_icon = 'HOE'; break;
+			case 'LA': $style_icon = 'LS'; break;
+			case 'VDP': $style_icon = 'SFUA'; break;
+			case 'CROSS': $style_icon = 'HCROSS'; break;
 		}
 	}
 	$orb_icon = '<div data-orb="' . $color . '" class="orb-bg ' . $color . '"></div>';
