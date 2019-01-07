@@ -2,6 +2,7 @@
 <html>
 <head>
 <link rel="stylesheet" type="text/css" href="boards.css">
+<link rel="stylesheet" type="text/css" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>
 <script src="board_filters.js" type="text/javascript"></script>
 <script>
@@ -12,6 +13,14 @@ $(document).ready(function(){
 </script>
 </head>
 <body>
+
+<div class="header">
+	<div class="header-bg">
+    </div>
+	<div class="content">
+        <p class="heading-title">Step-by-step matches</p>
+	</div>
+</div>
 <?php
 include 'boards_common.php';
 include 'sql_param.php';
