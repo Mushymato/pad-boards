@@ -1,3 +1,8 @@
+body {
+    font-family: "helvetica neue" , "arial" , "helvetica" , sans-serif ;
+	background-color: #e8e8e8;
+	margin: 0;
+}
 .R {
 	background-image: url('img/R.png');
 }
@@ -40,6 +45,7 @@
 }
 .grid.fset{
 	grid-template-columns: 1fr 4fr;
+	margin: 10px 0 20px 0;
 }
 .grid.filters{
 	grid-template-columns: repeat(4, 1fr);
@@ -98,12 +104,16 @@
 	margin: 0px 5px;
 	padding: 2px;
 }
+
 .board-ratio-combos > div:nth-child(1){
-	border: solid 2px black;
+	/* border: solid 2px black;*/
 	border-radius: 4px;
 	font-weight:bold;
 	font-size:16pt;
 	font-stretch:ultra-condensed;
+	background-color: #c5c5c5;
+	padding: 0 5px;
+	color: #444;
 }
 .orb-bg{
 	margin: 0px;
@@ -161,7 +171,8 @@ input.hidden{
 .orb-count input{
 	margin:0px;
 	padding:0px;
-	height:56%
+	height:70%;
+	text-align: center;
 }
 .orb-count input[type^='text']{
 	width:20px;
