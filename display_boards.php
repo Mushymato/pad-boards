@@ -76,8 +76,9 @@ echo '<div class="boards float size-' . $size . '">' . display_boards($boards) .
     <footer>
         <p class="title">PAD Boards Database</p>
         <p class="bm"><a href="../">@ Blogging Mama</a></p>
-        <span class="credits heading">Creator</span><span class="credits">chu2</span><br />
-        <span class="credits heading">Data input</span><span class="credits">Umby, InsanityBringer</span>
+        <span class="credits heading">Backend</span><span class="credits">chu2</span><br />
+        <span class="credits heading">Data Input</span><span class="credits">Miso(<a href="http://misopad.wordpress.com/">http://misopad.wordpress.com/</a>")</span><br />
+        <span class="credits heading">Data Input</span><span class="credits">Umby, InsanityBringer</span>
         <p>&copy; 2019 chu2. Puzzle & Dragons logo and all related images are registered trademarks or trademarks of GungHo Online Entertainment, Inc.</p>
     </footer>
 </body>

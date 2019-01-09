@@ -514,11 +514,11 @@ function display_board_solve($conn, $pattern){
 						}
 					}
 				}
-				$board_out[] = '<div class="board-box"><div class="grid board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution']), $size) . '</div>';
+				$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution']), $size) . '</div>';
 			}
 			$prev_board = $step['board'];
 		}
-		$board_out[] = '<div class="board-box"><div class="grid board-styles">' . implode($style_out) . '</div>' . get_board_arr($prev_board, $size) . '</div>';
+		$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_arr($prev_board, $size) . '</div>';
 	}else{
 		$size = $board[0]['size'];
 		$bID = $board[0]['bID'];

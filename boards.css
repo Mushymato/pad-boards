@@ -54,6 +54,7 @@ body {
 	grid-template-columns: repeat(6, 30px);
 }
 .grid.board-styles{
+	min-height: 20px;
 	grid-template-columns: repeat(3, 1fr);
 }
 .float.board-styles{
