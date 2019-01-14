@@ -39,9 +39,9 @@ while (!feof($fh)) {
 	$all_colors = permute_board($entry['pattern']);
 	foreach($all_colors as $pattern){
 		$entry['pattern'] = $pattern;
-		$entry['orbs'] = count_orbs($entry['pattern'], $orb_list);
+		/*$entry['orbs'] = count_orbs($entry['pattern'], $orb_list);
 		$entry['orb_count'] = sizeof($entry['orbs']);
-		$entry['solve'] = solve_board(str_split($entry['pattern']),  $wh);
+		$entry['solve'] = solve_board(str_split($entry['pattern']),  $wh);*/
 		$data[$pattern] = $entry;
 	}
 }
@@ -61,7 +61,8 @@ $insert_style = $conn->prepare('INSERT INTO styles (cID, style) VALUES (?, ?)');
 foreach($data as $pattern => $entry){
 	$wh = $size_list[$entry['size']];
 	$solve = solve_board(str_split($pattern), $wh);
-	$orb_count = sizeof($entry['orbs']);
+	$orbs = count_orbs($entry['pattern'], $orb_list);
+	$orb_count = sizeof($orbs);
 	
 	if(	!$insert_board->bind_param('ssi', $entry['size'], $pattern, $orb_count) ||
 		!$insert_board->execute()){
@@ -71,7 +72,7 @@ foreach($data as $pattern => $entry){
 	}
 	$bID = $insert_board->insert_id;
 	
-	foreach($entry['orbs'] as $color => $count){
+	foreach($orbs as $color => $count){
 		if(	!$insert_orbs->bind_param('isi', $bID, $color, $count) ||
 			!$insert_orbs->execute()){
 			trigger_error('Insert orbs(b:' . $bID . ') failed: ' . $conn->error);

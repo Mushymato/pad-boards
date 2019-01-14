@@ -431,6 +431,7 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 	return true;
 }
 function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){	
+	global $rgbld_orb_list;
 	if($hearts){
 		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" and boards.bID in (select boards.bID from boards inner join orbs on boards.bID=orbs.bID where orbs.color="H") order by orbs.count asc;';
 		$stmt = $conn->prepare($sql);
@@ -463,6 +464,18 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 	$board_styles = execute_select_stmt($stmt, 'bID');
 	$stmt->close();
 	
+	$sql = 'select boards.bID, boards.pattern, combos.color, max(combos.length) as orbs_connected from boards inner join combos on boards.bID=combos.bID where boards.size=? group by combos.bID, combos.color;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_orbs_connected = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
+	
+	$sql = 'select boards.bID, steps.sID, steps.pattern_board from boards inner join steps on boards.bID=steps.bID where  boards.size=? and steps.sID in (select max(steps.sID) from steps group by steps.bID);';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_final_state = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
+
 	foreach($boards as &$board){
 		$board['orbs'] = array();
 		foreach($board_orbs[$board['bID']] as $orb){
@@ -475,6 +488,11 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 				$board['styles'][$style['style']][$style['color']] = $style['style_counts'];
 			}
 		}
+		$board['orbs_connected'] = array();
+		foreach($board_orbs_connected[$board['bID']] as $orb_connected){
+			$board['orbs_connected'][$orb_connected['color']] = $orb_connected['orbs_connected'];
+		}
+		$board['orbs_remaining'] = array_sum(count_orbs($board_final_state[$board['bID']][0]['pattern_board'], $rgbld_orb_list));
 	}
 	return $boards;
 }
@@ -514,7 +532,7 @@ function display_board_solve($conn, $pattern){
 						}
 					}
 				}
-				$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution']), $size) . '</div>';
+				$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution'], $size_list[$size]), $size) . '</div>';
 			}
 			$prev_board = $step['board'];
 		}
@@ -603,10 +621,17 @@ function display_boards($boards){
 		foreach($orb_list as $color){
 			if(array_key_exists($color, $board['orbs'])){
 				$ratio = $ratio . $board['orbs'][$color] . '-';
-				$data_ratio = $data_ratio . 'data-ratio-' . $color . '="' . $board['orbs'][$color] . '" ';
+				$data_ratio = $data_ratio . ' data-ratio-' . $color . '="' . $board['orbs'][$color] . '"';
 			}
 		}
-		$output = $output . '<div class="board-box" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
+		$orbs_connected = '';
+		$data_orbs_connected = '';
+		foreach($board['orbs_connected'] as $color => $orb_connected){
+			$orbs_connected .= '<div class="style-orb-connected"><div data-orb="' . $color . '" class="orb-bg ' . $color . '"></div><div>x' . $orb_connected . '</div></div>';
+			$data_orbs_connected .= ' data-connected-' . $color . '="' . $orb_connected . '"';
+		}
+		$data_orbs_left = ' data-orbs-left="' . $board['orbs_remaining'] . '"';
+		$output = $output . '<div class="board-box"' . $data_ratio . $data_style . $data_orbs_connected . $data_orbs_left . '><div class="board-info float"><div class="board-statistics"><div>' . substr($ratio, 0, -1) . '</div><div class="combo-text">' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div><div class="board-info float"><div class="orbs-connected-text">Maximum<br/>Connected</div><div class="float board-connected">' . $orbs_connected . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
 	return $output;
 }
@@ -621,7 +646,7 @@ function orb_radios($att_orb){
 	}
 	return $out;
 }
-function get_attribute_filters($boards){
+function get_filters($boards){
 	global $orb_list;
 	global $size_list;
 	$colors = array();
