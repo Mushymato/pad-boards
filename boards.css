@@ -99,8 +99,8 @@ body {
 	opacity:0.5;
 }
 .board-info{
-	margin: 0px 5px;
-	padding: 5px 0px;
+	margin: 0px 4px;
+	padding: 4px 0px;
 	border-top: solid 1px grey;
 }
 .board-info > div{
@@ -116,15 +116,22 @@ body {
 	margin: 0px 5px;
 	padding: 2px;
 }
-
+.board-statistics > div{
+	height:20px;
+	line-height:20px;
+	font-stretch:ultra-condensed;
+}
 .board-statistics > div:nth-child(1){
 	/* border: solid 2px black;*/
 	border-radius: 4px;
-	font-weight:bold;
-	font-size:16pt;
 	font-stretch:ultra-condensed;
+	font-size: 18px;
+	font-weight:bold;
 	background-color: #c5c5c5;
 	color: #444;
+}
+.board-statistics > div:nth-child(2){
+	font-size: 14px;
 }
 .orb-bg{
 	margin: 0px;
@@ -152,9 +159,6 @@ body {
 	background-size: 250%;
 	background-position: left;
 	min-width:8px;
-}
-.combo-text{
-	font-size: 14px;
 }
 .orbs-connected-text{
 	font-size: 10px;
