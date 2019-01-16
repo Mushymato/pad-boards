@@ -4,7 +4,7 @@
         <meta charset='utf-8'/>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <title>PAD Boards Database | Blogging Mama</title>
-        <link rel="stylesheet" type="text/css" href="boards2.css">
+        <link rel="stylesheet" type="text/css" href="boards.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
@@ -46,7 +46,7 @@
       <div class="collapse navbar-collapse" id="navbarText">
         <ul class="navbar-nav mr-auto">
           <li class="nav-item active">
-            <a class="nav-link how-to" href="#how-to">How to use</a>
+            <a class="nav-link how-to" href="#how-to">Quick Guide</a>
           </li>
           <li class="nav-item">
             <a class="nav-link about" href="#about">Credits</a>
@@ -71,8 +71,8 @@
                 <ol>
 	                <li>Select a board size.</li>
                     <li>Enter number of orbs.</li>
-                    <li>Optional: Select style of matching needed.</li>
-                    <li>Enjoy the board!</li>
+                    <li><u>Optional</u>: Filter boards by style of matching needed (TPA, VDP, etc.).</li>
+                    <li>Find the board that suits your needs!</li>
                 </ol>
                 
                 <h2>Tips</h2>
@@ -85,11 +85,12 @@
 			<div id='about' style='padding:10px; background:#fff;'>
 		    	<h2>Credits</h2>
         		<span class="">Creator:</span> chu2<br>
-        		<span class="">Data entry & verification:</span> Umby, InsanityBringer, <a href="https://misopad.wordpress.com/" target="_blank">Miso#5924</a>
+        		<span class="">Data Input &amp; Verification</span>: Miso(<a href="http://misopad.wordpress.com/">http://misopad.wordpress.com/</a>
+        		<span class="">Helpers:</span>  Umby, InsanityBringer<br>
 			</div>
 		</div>
 <main role="main">
-    <section id="display-boards">
+    <section>
         <?php
         function option($value, $text, $check){
             return '<option value="'. $value .'"' . ($check == $value ? ' selected' : ' ') . '>' . $text . '</option>' . PHP_EOL;
@@ -134,18 +135,18 @@
 					</div>
 				<div class="col-md-8">    
 					<form action=''>        
-					<?php echo get_attribute_filters($boards);?>
+					<?php echo get_filters($boards);?>
 					</form>
 				</div>
 			</div>
 		</div>
+	</section>
+    <section>
         <!-- Board display -->
 		<div class="container">
-			<div class="row">
 					<?php 
-					echo '<div class="text-center boards float size-' . $size . '">' . display_boards($boards) . '</div>';
+					echo '<div class="row justify-content-center boards float size-' . $size . '">' . display_boards($boards) . '</div>';
 					?>
-			</div>
 		</div>
 	</section>
     </main>
@@ -153,7 +154,8 @@
         <p class="title">PAD Boards Database</p>
         <p class="bm"><a href="../">@ Blogging Mama</a></p>
         <span class="credits heading">Creator</span><span class="credits">chu2</span><br />
-        <span class="credits heading">Data input</span><span class="credits">Umby, InsanityBringer</span>
+        <span class="credits heading">Data Input &amp; Verification</span><span class="credits">Miso(<a href="http://misopad.wordpress.com/" style="color:white">http://misopad.wordpress.com/</a>)</span><br />
+        
         <p>&copy; <?php echo date("Y"); ?> chu2. Puzzle & Dragons logo and all related images are registered trademarks or trademarks of GungHo Online Entertainment, Inc.</p>
     </footer>
 </body>

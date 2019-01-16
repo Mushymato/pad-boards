@@ -72,23 +72,18 @@ function permute_board($pattern){
         if ($start_i === count($array)-1) {
             array_push($result, reorder($pattern, $array));
         }
-
         for ($i = $start_i; $i < count($array); $i++) {
             //Swap array value at $i and $start_i
             $t = $array[$i]; $array[$i] = $array[$start_i]; $array[$start_i] = $t;
-
             //Recurse
             $recurse($array, $start_i + 1);
-
             //Restore old order
             $t = $array[$i]; $array[$i] = $array[$start_i]; $array[$start_i] = $t;
         }
     };
-
     $recurse($orbs);
 	return $result;
 }
-
 class FloodFill{
 	public $p_arr = array();
 	public $comboColor = '';
@@ -136,6 +131,7 @@ class FloodFill{
 			$this->stack[] = array($x, $y-1);
 		}
 		if(!$this->alreadyFilled($x+1, $y)){
+
 			$this->stack[] = array($x+1, $y);
 		}
 		if(!$this->alreadyFilled($x, $y+1)){
@@ -339,7 +335,6 @@ function solve_board($p_arr, $wh = array(6,5), $minimumMatched = 2){
 			$p_arr[$n] = '-';
 		}
 	}
-
 	$res = solve_board($p_arr, $wh);
 	if($res){
 		return array_merge(array(array('board' => $p_arr, 'solution' => $ff->solutions)), $res);
@@ -431,6 +426,7 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 	return true;
 }
 function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){	
+	global $rgbld_orb_list;
 	if($hearts){
 		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" and boards.bID in (select boards.bID from boards inner join orbs on boards.bID=orbs.bID where orbs.color="H") order by orbs.count asc;';
 		$stmt = $conn->prepare($sql);
@@ -456,13 +452,23 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 	$stmt->bind_param('s', $size);
 	$board_combo_count = execute_select_stmt($stmt, 'bID');
 	$stmt->close();
-
 	$sql = 'select boards.bID, combos.color, styles.style, count(combos.cID) style_counts from boards inner join combos on boards.bID=combos.bID inner join styles on combos.cID=styles.cID where boards.size=? group by boards.bID,combos.color,styles.style;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
 	$board_styles = execute_select_stmt($stmt, 'bID');
 	$stmt->close();
 	
+	$sql = 'select boards.bID, boards.pattern, combos.color, max(combos.length) as orbs_connected from boards inner join combos on boards.bID=combos.bID where boards.size=? group by combos.bID, combos.color;';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_orbs_connected = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
+	
+	$sql = 'select boards.bID, steps.sID, steps.pattern_board from boards inner join steps on boards.bID=steps.bID where  boards.size=? and steps.sID in (select max(steps.sID) from steps group by steps.bID);';
+	$stmt = $conn->prepare($sql);
+	$stmt->bind_param('s', $size);
+	$board_final_state = execute_select_stmt($stmt, 'bID');
+	$stmt->close();
 	foreach($boards as &$board){
 		$board['orbs'] = array();
 		foreach($board_orbs[$board['bID']] as $orb){
@@ -475,6 +481,11 @@ function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){
 				$board['styles'][$style['style']][$style['color']] = $style['style_counts'];
 			}
 		}
+		$board['orbs_connected'] = array();
+		foreach($board_orbs_connected[$board['bID']] as $orb_connected){
+			$board['orbs_connected'][$orb_connected['color']] = $orb_connected['orbs_connected'];
+		}
+		$board['orbs_remaining'] = array_sum(count_orbs($board_final_state[$board['bID']][0]['pattern_board'], $rgbld_orb_list));
 	}
 	return $boards;
 }
@@ -514,11 +525,11 @@ function display_board_solve($conn, $pattern){
 						}
 					}
 				}
-				$board_out[] = '<div class="board-box"><div class="grid board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution']), $size) . '</div>';
+				$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_matched_arr($prev_board, get_combined_match_pattern($step['solution'], $size_list[$size]), $size) . '</div>';
 			}
 			$prev_board = $step['board'];
 		}
-		$board_out[] = '<div class="board-box"><div class="grid board-styles">' . implode($style_out) . '</div>' . get_board_arr($prev_board, $size) . '</div>';
+		$board_out[] = '<div class="board-box"><div class="float board-styles">' . implode($style_out) . '</div>' . get_board_arr($prev_board, $size) . '</div>';
 	}else{
 		$size = $board[0]['size'];
 		$bID = $board[0]['bID'];
@@ -590,7 +601,7 @@ function display_boards($boards){
 				foreach($style as $color => $count){
 					if(in_array($color, $rgbld_orb_list) || $color == 'H'){
 						$data_style = $data_style . $color . '-' .$name . ' ';
-						$style_str = $style_str . '<div class="style-box">' . orb_style_icon($color, $name) . '<span>&times;' . $count . '</span></div>';
+						$style_str = $style_str . '<div class="style-box">' . orb_style_icon($color, $name) . '<span>x' . $count . '</span></div>';
 					}
 				}
 			}
@@ -603,10 +614,17 @@ function display_boards($boards){
 		foreach($orb_list as $color){
 			if(array_key_exists($color, $board['orbs'])){
 				$ratio = $ratio . $board['orbs'][$color] . '-';
-				$data_ratio = $data_ratio . 'data-ratio-' . $color . '="' . $board['orbs'][$color] . '" ';
+				$data_ratio = $data_ratio . ' data-ratio-' . $color . '="' . $board['orbs'][$color] . '"';
 			}
 		}
-		$output = $output . '<div class="col-sm-6 col-md-6 col-lg-4 col-xl-3" ' . $data_ratio . ' ' . $data_style . '><div class="board-info float"><div class="board-ratio-combos"><div>' . substr($ratio, 0, -1) . '</div><div>' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
+		$orbs_connected = '';
+		$data_orbs_connected = '';
+		foreach($board['orbs_connected'] as $color => $orb_connected){
+			$orbs_connected .= '<div class="style-orb-connected"><div data-orb="' . $color . '" class="orb-bg ' . $color . '"></div><div>x' . $orb_connected . '</div></div>';
+			$data_orbs_connected .= ' data-connected-' . $color . '="' . $orb_connected . '"';
+		}
+		$data_orbs_left = ' data-orbs-left="' . $board['orbs_remaining'] . '"';
+		$output = $output . '<div class="board-box"' . $data_ratio . $data_style . $data_orbs_connected . $data_orbs_left . '><div class="board-info float"><div class="board-statistics"><div>' . substr($ratio, 0, -1) . '</div><div>' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div><div class="board-info float"><div class="orbs-connected-text">Maximum<br/>Connected</div><div class="float board-connected">' . $orbs_connected . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
 	return $output;
 }
@@ -621,7 +639,7 @@ function orb_radios($att_orb){
 	}
 	return $out;
 }
-function get_attribute_filters($boards){
+function get_filters($boards){
 	global $orb_list;
 	global $size_list;
 	$colors = array();
@@ -660,6 +678,6 @@ function get_attribute_filters($boards){
 		$out = $out . '</div></div>';
 	}
 	
-	return '<fieldset  class="border p-2"><legend class="w-auto">Board Filters</legend>' . $out . '<button type="button" class="reset-colors">Reset Colors</button><button type="button" class="reset-filters">Reset Filters</button></fieldset>';
+	return '<fieldset class="border p-2"><legend class="w-auto">Board Filters</legend>' . $out . '<button type="button" class="reset-colors">Reset Colors</button><button type="button" class="reset-filters">Reset Filters</button></fieldset>';
 }
 ?>

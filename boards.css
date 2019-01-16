@@ -54,7 +54,12 @@ body {
 	grid-template-columns: repeat(6, 30px);
 }
 .grid.board-styles{
-	grid-template-columns: repeat(3, 1fr);
+	min-height: 20px;
+	grid-template-columns: repeat(4, 1fr);
+}
+.float.board-connected{
+	min-height: 20px;
+	float:right;
 }
 .float.board-styles{
 	min-height: 20px;
@@ -63,7 +68,7 @@ body {
 	background-image:url('img/boardbg.png');
 	background-size:80px 80px;
 	border:5px solid #1f201f;
-	margin:5px;
+	margin:0px 5px;
 	overflow:hidden;
 }
 .board.size-s {
@@ -93,27 +98,40 @@ body {
 .orb.matched{
 	opacity:0.5;
 }
+.board-info{
+	margin: 0px 4px;
+	padding: 4px 0px;
+	border-top: solid 1px grey;
+}
 .board-info > div{
+	margin: 0 0;
+	padding: 0 0;
 	overflow:hidden;
 	text-align:center;
 }
-.board-ratio-combos{
+.board-statistics{
 	width:20%;
 	width:auto;
 	height:auto;
 	margin: 0px 5px;
 	padding: 2px;
 }
-
-.board-ratio-combos > div:nth-child(1){
+.board-statistics > div{
+	height:20px;
+	line-height:20px;
+	font-stretch:ultra-condensed;
+}
+.board-statistics > div:nth-child(1){
 	/* border: solid 2px black;*/
 	border-radius: 4px;
-	font-weight:bold;
-	font-size:16pt;
 	font-stretch:ultra-condensed;
+	font-size: 18px;
+	font-weight:bold;
 	background-color: #c5c5c5;
-	padding: 0 5px;
 	color: #444;
+}
+.board-statistics > div:nth-child(2){
+	font-size: 14px;
 }
 .orb-bg{
 	margin: 0px;
@@ -128,7 +146,7 @@ body {
 	overflow:hidden;
 	display:inline-block;
 }
-.style-box,.style-button{
+.style-box,.style-button,.style-orb-connected{
 	height:20px;
 	line-height:20px;
 	display: flex;
@@ -141,6 +159,9 @@ body {
 	background-size: 250%;
 	background-position: left;
 	min-width:8px;
+}
+.orbs-connected-text{
+	font-size: 10px;
 }
 .board-filters{
 	width:50%;
