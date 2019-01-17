@@ -48,7 +48,7 @@ body {
 	margin: 10px 0 20px 0;
 }
 .grid.filters{
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 }
 .grid.atts{
 	grid-template-columns: repeat(6, 30px);
