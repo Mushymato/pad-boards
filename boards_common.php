@@ -574,7 +574,7 @@ function display_board_solve($conn, $pattern){
 		}
 		$board_out[] = '<div class="board-box"><div class="float board-styles"></div>' . get_board($prev_board, $size) . '</div>';
 	}
-	$output = '<div>Total Combos ' . $combos . '</div><div class="float">' . implode($board_out) . '</div>';
+	$output = '<div class="total-combos">Total Combos: ' . $combos . '</div><div class="float">' . implode($board_out) . '</div>';
 	//if(sizeof($style_out) > 0){$output = $output . 'Styles:<div class="float board-info">' . implode($style_out) . '</div>';}
 	return $output;
 }
