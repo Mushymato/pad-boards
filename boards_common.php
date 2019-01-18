@@ -631,7 +631,7 @@ function display_boards($boards){
 			$data_orbs_connected .= ' data-connected-' . $color . '="' . $orb_connected . '"';
 		}
 		$data_orbs_left = ' data-orbs-left="' . $board['orbs_remaining'] . '"';
-		$output = $output . '<div class="col-sm-6 col-md-6 col-lg-4 col-xl-3 board-box"' . $data_ratio . $data_style . $data_orbs_connected . $data_orbs_left . '><div class="board-info float"><div class="board-statistics"><div>' . substr($ratio, 0, -1) . '</div><div>' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div><div class="board-info float"><div class="orbs-connected-text">Maximum<br/>Connected</div><div class="float board-connected">' . $orbs_connected . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
+		$output = $output . '<div class="board-box"' . $data_ratio . $data_style . $data_orbs_connected . $data_orbs_left . '><div class="board-info float"><div class="board-statistics"><div>' . substr($ratio, 0, -1) . '</div><div>' . $board['combo'] . ' combo</div></div><div class="grid board-styles">' . $style_str . '</div></div><div class="board-info float"><div class="orbs-connected-text">Maximum<br/>Connected</div><div class="float board-connected">' . $orbs_connected . '</div></div>' . '<a class="board-url" href="solve_boards.php?pattern=' . $board['pattern'] . '">' . get_board($board['pattern'], $board['size']) . '</a></div>';
 	}
 	return $output;
 }
