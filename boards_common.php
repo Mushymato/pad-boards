@@ -1,4 +1,52 @@
 <?php
+function connect_sql($host, $user, $pass, $schema){
+	// Create connection
+	$conn = new mysqli($host, $user, $pass);
+	// Check connection
+	if ($conn->connect_error) {
+		trigger_error('Connection failed: ' . $conn->connect_error);
+		header( 'HTTP/1.0 403 Forbidden', TRUE, 403 );
+		die('you cannot');
+	}
+	$conn->set_charset('utf8');
+	$conn->select_db($schema);
+	return $conn;
+}
+function execute_select_boards($stmt, $pk = null){
+	if(!$stmt->execute()){
+		trigger_error($conn->error . '[select]');
+		return false;
+	}
+	$stmt->store_result();
+	if($stmt->num_rows == 0){
+		$stmt->free_result();
+		return array();
+	}
+	$fields = array();
+	$row = array();
+	$meta = $stmt->result_metadata(); 
+	while($f = $meta->fetch_field()){
+		$fields[] = & $row[$f->name];
+	}
+	call_user_func_array(array($stmt, 'bind_result'), $fields);
+	$res = array();
+	while ($stmt->fetch()){ 
+		foreach($row as $key => $val){
+			$c[$key] = $val; 
+		} 
+		if($pk != null){
+			if(array_key_exists($c[$pk], $res)){
+				$res[$c[$pk]][] = $c;
+			}else{
+				$res[$c[$pk]] = array($c);
+			}
+		}else{
+			$res[] = $c; 
+		}
+	}
+	return $res;
+}
+
 $insert_size = 10;
 $size_list = array('s' => array(5,4), 'm' => array(6,5), 'l' => array(7,6));
 $orb_list = array('R', 'B', 'G', 'L', 'D', 'H', 'J', 'X', 'P', 'M');
@@ -372,53 +420,6 @@ function get_match_pattern($combo, $wh = array(6,5)){
 	}
 	return $p_arr;
 }
-function connect_sql($host, $user, $pass, $schema){
-	// Create connection
-	$conn = new mysqli($host, $user, $pass);
-	// Check connection
-	if ($conn->connect_error) {
-		trigger_error('Connection failed: ' . $conn->connect_error);
-		header( 'HTTP/1.0 403 Forbidden', TRUE, 403 );
-		die('you cannot');
-	}
-	$conn->set_charset('utf8');
-	$conn->select_db($schema);
-	return $conn;
-}
-function execute_select_stmt($stmt, $pk = null){
-	if(!$stmt->execute()){
-		trigger_error($conn->error . '[select]');
-		return false;
-	}
-	$stmt->store_result();
-	if($stmt->num_rows == 0){
-		$stmt->free_result();
-		return array();
-	}
-	$fields = array();
-	$row = array();
-	$meta = $stmt->result_metadata(); 
-	while($f = $meta->fetch_field()){
-		$fields[] = & $row[$f->name];
-	}
-	call_user_func_array(array($stmt, 'bind_result'), $fields);
-	$res = array();
-	while ($stmt->fetch()){ 
-		foreach($row as $key => $val){
-			$c[$key] = $val; 
-		} 
-		if($pk != null){
-			if(array_key_exists($c[$pk], $res)){
-				$res[$c[$pk]][] = $c;
-			}else{
-				$res[$c[$pk]] = array($c);
-			}
-		}else{
-			$res[] = $c; 
-		}
-	}
-	return $res;
-}
 function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', 'combos', 'styles')){
 	foreach($tablenames as $tablename){
 		foreach(array('SET FOREIGN_KEY_CHECKS = 0;', 'TRUNCATE TABLE ' . $tablename . ';', 'SET FOREIGN_KEY_CHECKS = 1;') as $sql){
@@ -430,77 +431,133 @@ function truncate_tables($conn, $tablenames = array('boards', 'orbs', 'steps', '
 	}
 	return true;
 }
-function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false){	
+function select_boards($conn, $size = 'm', $color_count = 2, $hearts = false, $combo_count = null, $orbs_connected = null, $orbs_left = null, $style_array = null){
 	global $rgbld_orb_list;
 	if($hearts){
 		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" and boards.bID in (select boards.bID from boards inner join orbs on boards.bID=orbs.bID where orbs.color="H") order by orbs.count asc;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('si', $size, $color_count);
-		$boards = execute_select_stmt($stmt);
+		$boards = execute_select_boards($stmt);
 		$stmt->close();
 	}else{
 		$sql = 'select boards.bID, boards.size, boards.pattern from boards inner join orbs on boards.bID=orbs.bID where boards.size=? and boards.orb_count=? and orbs.color="R" and boards.bID not in (select boards.bID from boards inner join orbs on boards.bID=orbs.bID where orbs.color="H") order by orbs.count asc;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('si', $size, $color_count);
-		$boards = execute_select_stmt($stmt);
+		$boards = execute_select_boards($stmt);
 		$stmt->close();
 	}
 	
 	$sql = 'select boards.bID, orbs.color, orbs.count from boards inner join orbs on boards.bID=orbs.bID where boards.size=?;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
-	$board_orbs = execute_select_stmt($stmt, 'bID');
+	$board_orbs = execute_select_boards($stmt, 'bID');
 	$stmt->close();
 	
-	$sql = 'select combos.bID, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.size=? group by boards.bID;';
-	$stmt = $conn->prepare($sql);
-	$stmt->bind_param('s', $size);
-	$board_combo_count = execute_select_stmt($stmt, 'bID');
+	$sql = 'select combos.bID, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.size=? group by boards.bID';
+	if($combo_count != null){
+		$sql .= ' having combo_count' . $combo_count[0] . '?';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('si', $size, $combo_count[1]);
+	}else{
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('s', $size);
+	}
+	$board_combo_count = execute_select_boards($stmt, 'bID');
 	$stmt->close();
 
 	$sql = 'select boards.bID, combos.color, styles.style, count(combos.cID) style_counts from boards inner join combos on boards.bID=combos.bID inner join styles on combos.cID=styles.cID where boards.size=? group by boards.bID,combos.color,styles.style;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $size);
-	$board_styles = execute_select_stmt($stmt, 'bID');
+	$board_styles = execute_select_boards($stmt, 'bID');
 	$stmt->close();
 	
-	$sql = 'select boards.bID, boards.pattern, combos.color, max(combos.length) as orbs_connected from boards inner join combos on boards.bID=combos.bID where boards.size=? group by combos.bID, combos.color;';
-	$stmt = $conn->prepare($sql);
-	$stmt->bind_param('s', $size);
-	$board_orbs_connected = execute_select_stmt($stmt, 'bID');
+	$sql = 'select boards.bID, boards.pattern, combos.color, max(combos.length) as orbs_connected from boards inner join combos on boards.bID=combos.bID';
+	$sql_e = ' where boards.size=? group by combos.bID, combos.color;';
+	if($orbs_connected != null){
+		$sql .= ' inner join (select boards.bID, boards.pattern, combos.color, max(combos.length) as orbs_connected from boards inner join combos on boards.bID=combos.bID group by combos.bID, combos.color having orbs_connected' . $orbs_connected[0] . '?';
+		if(sizeof($orbs_connected == 3)){
+			$sql .= ' and combos.color=?) bd on boards.bID=bd.bID' . $sql_e;
+			$stmt = $conn->prepare($sql);
+			$stmt->bind_param('iss', $orbs_connected[1], $orbs_connected[2], $size);
+		}else{
+			$sql .= ') bd on boards.bID=bd.bID' . $sql_e;
+			$stmt = $conn->prepare($sql);
+			$stmt->bind_param('is', $orbs_connected[1], $size);			
+		}
+	}else{
+		$sql .= $sql_e;
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('s', $size);
+	}
+	$board_orbs_connected = execute_select_boards($stmt, 'bID');
 	$stmt->close();
 	
-	$sql = 'select boards.bID, steps.sID, steps.pattern_board from boards inner join steps on boards.bID=steps.bID where  boards.size=? and steps.sID in (select max(steps.sID) from steps group by steps.bID);';
-	$stmt = $conn->prepare($sql);
-	$stmt->bind_param('s', $size);
-	$board_final_state = execute_select_stmt($stmt, 'bID');
+	$sql = 'select boards.bID, steps.sID, steps.pattern_board_count from boards inner join steps on boards.bID=steps.bID where  boards.size=? and steps.sID in (select max(steps.sID) from steps group by steps.bID)';
+	if($orbs_left != null){
+		$sql .= ' and steps.pattern_board_count' . $orbs_left[0] . '?';
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('si', $size, $orbs_left[1]);
+	}else{
+		$stmt = $conn->prepare($sql);
+		$stmt->bind_param('s', $size);
+	}
+	$board_orb_remaining = execute_select_boards($stmt, 'bID');
 	$stmt->close();
 
-	foreach($boards as &$board){
+	$selected_boards = array();
+	foreach($boards as $board){
 		$board['orbs'] = array();
 		foreach($board_orbs[$board['bID']] as $orb){
 			$board['orbs'][$orb['color']] = $orb['count'];
 		}
+		if(	!array_key_exists($board['bID'], $board_combo_count) || 
+			!array_key_exists($board['bID'], $board_orbs_connected) || 
+			!array_key_exists($board['bID'], $board_orb_remaining)){
+			continue;
+		}
 		$board['combo'] = $board_combo_count[$board['bID']][0]['combo_count'];
 		if(array_key_exists($board['bID'], $board_styles)){
 			$board['styles'] = array();
-			foreach($board_styles[$board['bID']] as $style){
-				$board['styles'][$style['style']][$style['color']] = $style['style_counts'];
+			foreach($board_styles[$board['bID']] as $s){
+				$board['styles'][$s['style']][$s['color']] = $s['style_counts'];
 			}
+			if($style_array != null){
+				$valid = true;
+				foreach($style_array as $sp){
+					if(sizeof($sp) > 0){
+						$valid = array_key_exists($sp[0], $board['styles']);
+					}
+					if(!$valid){break;}
+					if(sizeof($sp) > 1){
+						$valid = array_key_exists($sp[1], $board['styles'][$sp[0]]);
+					}
+					if(!$valid){break;}
+					if(sizeof($sp) > 2){
+						$valid = ($board['styles'][$sp[0]][$sp[1]] == $sp[2]);
+					}
+					if(!$valid){break;}
+				}
+				if(!$valid){
+					continue;
+				}
+			}
+		}else if($style_array != null){
+			continue;
 		}
 		$board['orbs_connected'] = array();
 		foreach($board_orbs_connected[$board['bID']] as $orb_connected){
 			$board['orbs_connected'][$orb_connected['color']] = $orb_connected['orbs_connected'];
 		}
-		$board['orbs_remaining'] = array_sum(count_orbs($board_final_state[$board['bID']][0]['pattern_board'], $rgbld_orb_list));
+		$board['orbs_remaining'] = $board_orb_remaining[$board['bID']][0]['pattern_board_count'];
+		$selected_boards[] = $board;
 	}
-	return $boards;
+	return $selected_boards;
 }
 function display_board_solve($conn, $pattern){
 	$sql = 'select boards.bID, boards.pattern, boards.size, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.pattern=? group by boards.bID;';
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param('s', $pattern);
-	$board = execute_select_stmt($stmt);
+	$board = execute_select_boards($stmt);
 	$stmt->close();
 	if(sizeof($board) == 0){
 		global $size_list;
@@ -544,19 +601,19 @@ function display_board_solve($conn, $pattern){
 		$sql = 'select combos.bID, count(combos.cID) combo_count from boards inner join combos on boards.bID=combos.bID where boards.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('s', $size);
-		$combo_count = execute_select_stmt($stmt);
+		$combo_count = execute_select_boards($stmt);
 		$stmt->close();
 		
 		$sql = 'select steps.bID,steps.sID,steps.pattern_board,steps.pattern_match from steps where steps.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('i', $bID);
-		$steps = execute_select_stmt($stmt);
+		$steps = execute_select_boards($stmt);
 		$stmt->close();
 		
 		$sql = 'select steps.sID,combos.cID,combos.color,styles.style from steps inner join combos on steps.sID=combos.sID inner join styles on combos.cID=styles.cID where steps.bID=?;';
 		$stmt = $conn->prepare($sql);
 		$stmt->bind_param('i', $bID);
-		$styles = execute_select_stmt($stmt, 'sID');
+		$styles = execute_select_boards($stmt, 'sID');
 		$stmt->close();
 		
 		$combos = $board[0]['combo_count'];
