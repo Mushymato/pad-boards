@@ -91,7 +91,7 @@
         }
         include 'boards_common.php';
         include 'sql_param.php';
-        $conn = connect_sql($host, $user, $pass, $schema);
+        $conn = connect_boards_sql($host, $user, $pass, $schema);
         $size = array_key_exists('board_size', $_GET) ? $_GET['board_size'] : 'm';
         $orb_count = array_key_exists('orb_count', $_GET) ? intval($_GET['orb_count']) : 2;
         $hearts = array_key_exists('hearts', $_GET) ? boolval($_GET['hearts']) : false;
