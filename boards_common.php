@@ -742,6 +742,21 @@ function get_filters($boards){
 		$out = $out . '</div></div>';
 	}
 	
-	return '<fieldset class="border p-2"><legend class="w-auto">Board Filters</legend>' . $out . '<button type="button" class="reset-colors">Reset Colors</button><button type="button" class="reset-filters">Reset Filters</button></fieldset>';
+	return '<fieldset>
+		<legend>Select Board Type</legend>
+		<select name="orb_count">
+			<option value="2">Bicolor</option>
+			<option value="3">Tricolor</option>
+		</select>
+		<select name="board_size">
+			<option value="m">6x5</option>
+			<option value="l">7x6</option>
+		</select>
+		<select name="hearts">
+			<option value="0">No</option>
+			<option value="1">Yes</option>
+		</select>
+	</fieldset>
+	<fieldset class="border p-2"><legend class="w-auto">Board Filters</legend>' . $out . '<button type="button" class="reset-colors">Reset Colors</button><button type="button" class="reset-filters">Reset Filters</button></fieldset>';
 }
 ?>

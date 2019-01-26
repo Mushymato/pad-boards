@@ -96,7 +96,7 @@ function updateFilters(){
 		}
 	}
 }
-function addFilterListeners(){
+function addOrbListenders(){
 	$("input[data-attribute]").each(function(index) {
 		$(this).on("click", function(){
 			var data = $(this).attr("data-attribute").split("-");
@@ -110,7 +110,10 @@ function addFilterListeners(){
 			updateOrbColors();
 			updateOrbRadios();
 		});
-	});
+	});	
+	$(".reset-colors").on("click", resetColors);
+}
+function addFilterListeners(){
 	$(".orb-count > input[type^='range']").each(function(index){
 		$(this).on("change", function() {
 			$(this).prev().val($(this).val());
@@ -151,9 +154,35 @@ function addFilterListeners(){
 			updateFilters();
 		});
 	});
-	$(".reset-colors").on("click", resetColors);
 	$(".reset-filters").on("click", resetFilters);
 }
-function requestBoards(){
-	
+function requestBoards(board_size, orb_count, hearts, combo_count, orbs_connected, orbs_left, style_array, callback){
+    request = $.ajax({
+        url: "./board_filter_handler.php",
+        type: "post",
+        data: {
+			"board_size" : board_size,
+			"orb_count" : orb_count,
+			"hearts" : hearts,
+			"combo_count" : combo_count,
+			"orbs_connected" : orbs_connected,
+			"orbs_left" : orbs_left,
+			"style_array" : style_array
+		},
+		dataType: "json"
+    });
+	request.done(function (response, textStatus, jqXHR){
+        // Log a message to the console
+		$("#boards-wrapper").append(response["boards"]);
+		$("#boards-filter-form").append(response["filters"]);
+        console.log(response['debug']);
+		callback();
+    });
+	request.fail(function (jqXHR, textStatus, errorThrown){
+        // Log the error to the console
+        console.error(
+            "The following error occurred: "+
+            textStatus, errorThrown
+        );
+    });
 }
