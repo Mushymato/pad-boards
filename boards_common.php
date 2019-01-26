@@ -1,5 +1,5 @@
 <?php
-function connect_sql($host, $user, $pass, $schema){
+function connect_board_sql($host, $user, $pass, $schema){
 	// Create connection
 	$conn = new mysqli($host, $user, $pass);
 	// Check connection
