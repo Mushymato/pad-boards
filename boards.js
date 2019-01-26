@@ -154,3 +154,6 @@ function addFilterListeners(){
 	$(".reset-colors").on("click", resetColors);
 	$(".reset-filters").on("click", resetFilters);
 }
+function requestBoards(){
+	
+}
