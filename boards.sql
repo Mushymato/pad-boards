@@ -17,7 +17,9 @@ CREATE TABLE steps(
 	bID int NOT NULL,
     FOREIGN KEY (bID) REFERENCES boards(bID) ON DELETE CASCADE,
 	pattern_board nvarchar(42) NOT NULL,
-	pattern_match nvarchar(42) NOT NULL
+	pattern_board_count int NOT NULL,
+	pattern_match nvarchar(42) NOT NULL,
+	pattern_match_count int NOT NULL
 );
 CREATE TABLE combos(
 	cID int PRIMARY KEY AUTO_INCREMENT,

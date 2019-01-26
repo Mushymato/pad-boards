@@ -55,7 +55,7 @@ $success = 0;
 mysqli_autocommit($conn, FALSE);
 $insert_board = $conn->prepare('INSERT INTO boards (size, pattern, orb_count) VALUES (?,?,?);');
 $insert_orbs = $conn->prepare('INSERT INTO orbs (bID, color, count) VALUES (?, ?, ?)');
-$insert_step = $conn->prepare('INSERT INTO steps (bID, pattern_board, pattern_match) VALUES (?, ?, ?)');
+$insert_step = $conn->prepare('INSERT INTO steps (bID, pattern_board, pattern_board_count, pattern_match, pattern_match_count) VALUES (?, ?, ?, ?, ?)');
 $insert_combo = $conn->prepare('INSERT INTO combos (bID, sID, color, length, pattern_combo) VALUES (?, ?, ?, ?, ?)');
 $insert_style = $conn->prepare('INSERT INTO styles (cID, style) VALUES (?, ?)');
 foreach($data as $pattern => $entry){
@@ -83,8 +83,10 @@ foreach($data as $pattern => $entry){
 	
 	foreach($solve as $step){
 		$p_board = implode($step['board']);
+		$p_bc = array_sum(count_orbs($p_board, $rgbld_orb_list));
 		$p_match = implode(get_combined_match_pattern($step['solution'], $wh));
-		if(	!$insert_step->bind_param('iss', $bID, $p_board, $p_match) ||
+		$p_mc = array_sum(count_orbs($p_match, $rgbld_orb_list));
+		if(	!$insert_step->bind_param('isisi', $bID, $p_board, $p_bc, $p_match, $p_mc) ||
 			!$insert_step->execute()){
 			trigger_error('Insert step(b:' . $bID . ') failed: ' . $conn->error);
 			$conn->rollback();
