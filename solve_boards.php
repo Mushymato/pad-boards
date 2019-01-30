@@ -30,7 +30,7 @@ $(document).ready(function(){
 <?php
 include 'boards_common.php';
 include 'sql_param.php';
-$conn = connect_sql($host, $user, $pass, $schema);
+$conn = connect_boards_sql($host, $user, $pass, $schema);
 $pattern = array_key_exists('pattern', $_GET) ? $_GET['pattern'] : '1';
 echo display_board_solve($conn, $pattern);
 ?>
