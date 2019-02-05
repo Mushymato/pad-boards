@@ -2,7 +2,7 @@
 include 'boards_common.php';
 include 'sql_param.php';
 $time_start = microtime(true);
-$conn = connect_sql($host, $user, $pass, $schema);
+$conn = connect_boards_sql($host, $user, $pass, $schema);
 $url_google_sheet = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQkDdwvr-R6t4SbqlLddS302UtKWvMx-rGIRDKD8_6AszcvNNv_N56SOoffaw1eRZbP0cUmM3eges1G/pub?gid=0&single=true&output=csv';
 $url_local = 'boards.csv';
 $data = array();
@@ -48,7 +48,7 @@ while (!feof($fh)) {
 fclose($fh);
 
 
-$conn = connect_sql($host, $user, $pass, $schema);
+$conn = connect_boards_sql($host, $user, $pass, $schema);
 truncate_tables($conn);
 
 $success = 0;
